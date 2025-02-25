@@ -1,4 +1,4 @@
-# KONEK TA: A Social Media Platform
+# <p align="center"><strong>KONEK TA: A Social Media Platform</strong></p>
 
 ## Table of Contents
 
