@@ -1,4 +1,5 @@
-# <p align="center"><strong><p align="center"><strong>KONEK TA: A Social Media</strong></p>
+# <p align="center"><strong><p align="center"><strong>KONEK TA: A Social Media Platform</strong></p>
+
 </strong></p>
 
 ## Table of Contents
@@ -66,8 +67,7 @@ KONEK TA is a Hiligaynon word meaning "Let's Connect." It is a social media plat
 
 ### **Hosting & Deployment**
 
-- **Web**: Hosted on Infinityfree server
-- **Database Hosting**: MySQL database hosted on a cloud or dedicated server.
+- **Web and Database Hosting**: Hosted on Infinityfree server
 
 ---
 
@@ -95,9 +95,9 @@ KONEK TA is a Hiligaynon word meaning "Let's Connect." It is a social media plat
 
 ## Contributors
 
-- **Larry Denver Biaco** *(Frontend)* - [GitHub](https://github.com/Sphynxxxxx)
-- **Edjay Lindayao** *(Backend)* - [GitHub](https://github.com/edge405)
-- **Reymart Talagon** *(QA)* - [Facebook](https://www.facebook.com/reymartzkie.talagon.9)
+- **Larry Denver Biaco** _(Frontend)_ - [GitHub](https://github.com/Sphynxxxxx)
+- **Edjay Lindayao** _(Backend)_ - [GitHub](https://github.com/edge405)
+- **Reymart Talagon** _(QA)_ - [Facebook](https://www.facebook.com/reymartzkie.talagon.9)
 
 ---
 
@@ -112,4 +112,3 @@ For any inquiries or contributions, please reach out to our development team.
 <!-- ## License
 
 [MIT License](LICENSE) -->
-
