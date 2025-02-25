@@ -1,4 +1,5 @@
-# <p align="center"><strong>KONEK TA: A Social Media Platform</strong></p>
+# <p align="center"><strong><p align="center"><strong>KONEK TA: A Social Media</strong></p>
+</strong></p>
 
 ## Table of Contents
 
@@ -7,6 +8,7 @@
 - [Technical Architecture](#technical-architecture)
 - [User Flow](#user-flow)
 - [Future Enhancements](#future-enhancements)
+- [Contributors](#contributors)
 - [Conclusion](#conclusion)
 
 ---
@@ -91,6 +93,14 @@ KONEK TA is a Hiligaynon word meaning "Let's Connect." It is a social media plat
 
 ---
 
+## Contributors
+
+- **Larry Denver Biaco** *(Frontend)* - [GitHub](https://github.com/Sphynxxxxx)
+- **Edjay Lindayao** *(Backend)* - [GitHub](https://github.com/edge405)
+- **Reymart Talagon** *(QA)* - [Facebook](https://www.facebook.com/reymartzkie.talagon.9)
+
+---
+
 ## Conclusion
 
 KONEK TA aims to revolutionize social networking by focusing on **shared interests** rather than generic connections. By integrating intuitive features, strong security, and a user-friendly design, it provides a platform for individuals to connect, share, and engage meaningfully.
@@ -102,3 +112,4 @@ For any inquiries or contributions, please reach out to our development team.
 <!-- ## License
 
 [MIT License](LICENSE) -->
+
