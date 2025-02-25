@@ -3,9 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
+    <title>Nigga</title>
+    <style>
+        body {
+            background-color: black;
+            color: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+            transition: background 0.5s, color 0.5s;
+        }
+        .hidden-text {
+            font-size: 5rem;
+            display: none;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-    <h1>Reymart Sunoy</h1>
+    <div class="hidden-text">NIGGA</div>
+    <button onclick="changeBackground()">Click Me</button>
+    
+    <script>
+        function changeBackground() {
+            document.body.style.backgroundColor = "white";
+            document.body.style.color = "black";
+            document.querySelector(".hidden-text").style.display = "block";
+        }
+    </script>
 </body>
 </html>
