@@ -56,18 +56,19 @@ KONEK TA is a Hiligaynon word meaning "Let's Connect." It is a social media plat
 
 ### **Frontend** (User Interface)
 
-- **Technology**: Plain HTML, CSS, and JavaScript.
-- **UI Framework**: Custom CSS for responsive design.
+- **Technology**: React
+- **UI Framework**: Tailwind for responsive design.
 
 ### **Backend** (Server & Database)
 
-- **Technology**: PHP for server-side logic.
-- **Database**: MySQL for structured data management.
-- **Authentication**: PHP sessions and token-based authentication.
+- **Technology**: Python Django.
+- **Database**: PostgreSQL for structured data management.
 
-### **Hosting & Deployment**
+### Hosting & Deployment
 
-- **Web and Database Hosting**: Hosted on Infinityfree server
+- **Frontend:** Vercel
+- **Backend:** Render
+- **Database:** Neon.db
 
 ---
 
@@ -109,6 +110,6 @@ For any inquiries or contributions, please reach out to our development team.
 
 ---
 
-<!-- ## License
+## License
 
-[MIT License](LICENSE) -->
+[MIT License](LICENSE)

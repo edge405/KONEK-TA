@@ -1,0 +1,37 @@
+# Python
+*.py[cod]
+__pycache__/
+*.so
+
+# Django
+*.log
+*.pot
+*.pyc
+*.pyo
+*.sqlite3
+*.db
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Environments
+.env
+.env.*    # like .env.dev, .env.production
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Migrations (Optional: include only if you don’t want to track them initially)
+**/migrations/*.py
+!**/migrations/__init__.py
