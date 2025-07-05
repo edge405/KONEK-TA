@@ -1,4 +1,4 @@
-````markdown
+
 # Django Project Installation Guide
 
 Follow these steps to set up and run the Django project on your local machine.
@@ -11,7 +11,6 @@ Follow these steps to set up and run the Django project on your local machine.
 git clone https://github.com/edge405/KONEK-TA.git
 cd KONEK-TA/konekta-server/konekta-backend/konekta
 ```
-````
 
 ## Create and Activate a Virtual Environment
 
