@@ -128,6 +128,8 @@ class GroupMembershipAPITests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         results = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
         self.assertTrue(len(results) >= 1)
+        self.assertIn('user_details', results[0])
+        self.assertEqual(results[0]['user_details']['username'], self.admin.username)
 
     def test_search_groups(self):
         url = reverse('group-list')

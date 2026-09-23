@@ -52,14 +52,21 @@ class GroupCreateSerializer(serializers.ModelSerializer):
         return group
 
 
+class GroupMembershipUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'profile_picture')
+
+
 class GroupMembershipSerializer(serializers.ModelSerializer):
     user = serializers.StringRelatedField(read_only=True)
+    user_details = GroupMembershipUserSerializer(source='user', read_only=True)
     group = serializers.StringRelatedField(read_only=True)
 
     class Meta:
         model = GroupMembership
-        fields = ('id', 'user', 'group', 'role', 'joined_at')
-        read_only_fields = ('id', 'user', 'group', 'joined_at')
+        fields = ('id', 'user', 'user_details', 'group', 'role', 'joined_at')
+        read_only_fields = ('id', 'user', 'user_details', 'group', 'joined_at')
 
 
 class GroupInvitationSerializer(serializers.ModelSerializer):

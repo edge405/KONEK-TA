@@ -104,7 +104,7 @@ class GroupMembersView(generics.ListAPIView):
 
     def get_queryset(self):
         group_id = self.kwargs.get('group_id')
-        return GroupMembership.objects.filter(group_id=group_id).select_related('user')
+        return GroupMembership.objects.filter(group_id=group_id).select_related('user').order_by('-joined_at')
 
 
 class GroupInvitationView(generics.ListCreateAPIView):
@@ -113,7 +113,7 @@ class GroupInvitationView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return GroupInvitation.objects.filter(invitee=self.request.user)
+        return GroupInvitation.objects.filter(invitee=self.request.user).order_by('-created_at')
 
 
 @api_view(['POST'])

@@ -173,11 +173,21 @@ class GroupChatConsumer(AsyncWebsocketConsumer):
             sender=user,
             content=content
         )
+        avatar_url = None
+        if hasattr(user, 'profile_picture') and user.profile_picture:
+            avatar_url = user.profile_picture.url
+
+        full_name = f"{user.first_name} {user.last_name}".strip()
+        sender_name = full_name if full_name else user.username
+
         return {
             'id': chat.id,
             'group': chat.group.name,
             'group_id': int(group_id),
             'sender': user.username,
+            'sender_id': user.id,
+            'sender_name': sender_name,
+            'sender_avatar': avatar_url,
             'content': chat.content,
             'image': None,
             'file': None,

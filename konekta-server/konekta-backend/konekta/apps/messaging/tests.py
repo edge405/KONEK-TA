@@ -128,6 +128,9 @@ class GroupChatAPITests(APITestCase):
         response = self.client.post(self.chat_url, payload)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['content'], 'Hello dev team!')
+        self.assertEqual(response.data['sender_id'], self.member.id)
+        self.assertEqual(response.data['sender_name'], self.member.username)
+        self.assertEqual(response.data['group_id'], self.group.id)
         self.assertTrue(GroupChat.objects.filter(group=self.group, content='Hello dev team!').exists())
 
     def test_list_group_chat_messages(self):
@@ -137,6 +140,8 @@ class GroupChatAPITests(APITestCase):
         results = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]['content'], 'First chat msg')
+        self.assertEqual(results[0]['sender_id'], self.member.id)
+        self.assertEqual(results[0]['group_id'], self.group.id)
 
     def test_non_member_cannot_send(self):
         outsider_token, _ = Token.objects.get_or_create(user=self.outsider)

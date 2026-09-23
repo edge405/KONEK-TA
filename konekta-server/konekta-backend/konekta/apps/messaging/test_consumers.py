@@ -133,6 +133,9 @@ class GroupChatConsumerTests(TransactionTestCase):
         resp2 = await comm2.receive_json_from(timeout=3)
         self.assertEqual(resp2["content"], "Hello Group!")
         self.assertEqual(resp2["sender"], "guser1")
+        self.assertEqual(resp2["sender_id"], self.user1.id)
+        self.assertEqual(resp2["sender_name"], "guser1")
+        self.assertEqual(resp2["group_id"], self.group.id)
 
         # Verify persisted in DB
         has_msg = await database_sync_to_async(
