@@ -9,6 +9,7 @@ import {
   getGroupMembers,
   getGroupPosts,
 } from "../services/groups";
+import { getGroupChat, sendGroupMessage } from "../services/messaging";
 
 export function useGroups(search = "") {
   return useQuery({
@@ -89,3 +90,39 @@ export function useGroupPosts(id) {
     enabled: !!id,
   });
 }
+
+export function useGroupChat(groupId) {
+  return useQuery({
+    queryKey: ["groupChat", groupId],
+    queryFn: () => getGroupChat(groupId),
+    enabled: !!groupId,
+  });
+}
+
+export function useSendGroupMessage() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ groupId, data }) => sendGroupMessage(groupId, data),
+    onSuccess: (newMessage, { groupId }) => {
+      queryClient.setQueryData(["groupChat", groupId], (oldData) => {
+        if (!oldData) return [newMessage];
+        if (Array.isArray(oldData)) {
+          if (oldData.some((m) => m.id === newMessage.id)) return oldData;
+          return [...oldData, newMessage];
+        }
+        const results = oldData.results || [];
+        if (results.some((m) => m.id === newMessage.id)) return oldData;
+        return {
+          ...oldData,
+          count: (oldData.count || results.length) + 1,
+          results: [...results, newMessage],
+        };
+      });
+    },
+    onError: () => {
+      toast.error("Failed to send group message");
+    },
+  });
+}
+
