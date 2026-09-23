@@ -9,6 +9,8 @@ import {
   getPosts,
   getPost,
   createPost,
+  updatePost,
+  deletePost,
   toggleLike,
   sharePost,
   getComments,
@@ -66,6 +68,79 @@ export function useCreatePost() {
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || "Failed to create post");
+    },
+  });
+}
+
+export function useUpdatePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }) => updatePost(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["bookmarks"] });
+      await queryClient.cancelQueries({ queryKey: ["post", id] });
+
+      const updatePostInPages = (old) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            results: (page.results ?? page).map((post) =>
+              post.id === id ? { ...post, ...data } : post
+            ),
+          })),
+        };
+      };
+
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updatePostInPages);
+      queryClient.setQueriesData({ queryKey: ["bookmarks"] }, updatePostInPages);
+      queryClient.setQueryData(["post", id], (old) => (old ? { ...old, ...data } : old));
+    },
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      queryClient.invalidateQueries({ queryKey: ["post", id] });
+      toast.success("Post updated successfully!");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || "Failed to update post");
+    },
+  });
+}
+
+export function useDeletePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => deletePost(id),
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["bookmarks"] });
+
+      const removePostFromPages = (old) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            results: (page.results ?? page).filter((post) => post.id !== id),
+          })),
+        };
+      };
+
+      queryClient.setQueriesData({ queryKey: ["posts"] }, removePostFromPages);
+      queryClient.setQueriesData({ queryKey: ["bookmarks"] }, removePostFromPages);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
+      toast.success("Post deleted");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || "Failed to delete post");
     },
   });
 }

@@ -9,6 +9,8 @@ import {
   useComments,
   useAddComment,
   useDeleteComment,
+  useUpdatePost,
+  useDeletePost,
 } from "../../hooks/usePosts";
 import Avatar from "../ui/Avatar";
 import Card from "../ui/Card";
@@ -25,6 +27,7 @@ import {
   Undo2,
   Send,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import { timeAgo, formatCount } from "../../utils/formatters";
 import { toast } from "react-hot-toast";
@@ -35,6 +38,10 @@ export default function PostCard({ post }) {
   const hidePostMutation = useHidePost();
   const unhidePostMutation = useUnhidePost();
   const bookmarkPost = useBookmarkPost();
+  const updatePostMutation = useUpdatePost();
+  const deletePostMutation = useDeletePost();
+
+  const isAuthor = currentUser?.id === post.author?.id;
 
   const [liked, setLiked] = useState(post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
@@ -44,6 +51,9 @@ export default function PostCard({ post }) {
   const [isHidden, setIsHidden] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentInput, setCommentInput] = useState("");
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content || "");
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: commentsData, isLoading: commentsLoading } = useComments(
     showComments ? post.id : null
@@ -143,6 +153,35 @@ export default function PostCard({ post }) {
     }
   };
 
+  const handleSaveEdit = async () => {
+    const trimmed = editContent.trim();
+    if (!trimmed) {
+      toast.error("Post content cannot be empty");
+      return;
+    }
+    try {
+      await updatePostMutation.mutateAsync({
+        id: post.id,
+        data: { content: trimmed },
+      });
+      setIsEditing(false);
+    } catch {
+      // toast is handled in mutation onError
+    }
+  };
+
+  const handleDeletePost = async () => {
+    setMenuOpen(false);
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      try {
+        setIsDeleting(true);
+        await deletePostMutation.mutateAsync(post.id);
+      } catch {
+        setIsDeleting(false);
+      }
+    }
+  };
+
   if (isHidden) {
     return (
       <Card className="py-3 px-4 bg-gray-50/80 dark:bg-gray-800/40 border-dashed border-gray-200 dark:border-gray-800 transition-all">
@@ -209,37 +248,63 @@ export default function PostCard({ post }) {
                     onClick={() => setMenuOpen(false)}
                   />
                   <div className="absolute right-0 top-7 z-30 w-44 bg-white dark:bg-gray-900 rounded-xl shadow-lg border border-gray-100 dark:border-gray-800 py-1 text-xs">
-                    <button
-                      onClick={handleHidePost}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <EyeOff className="w-3.5 h-3.5 text-gray-400" />
-                      Not Interested
-                    </button>
+                    {isAuthor ? (
+                      <>
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                            setEditContent(post.content || "");
+                            setIsEditing(true);
+                          }}
+                          className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                        >
+                          <Pencil className="w-3.5 h-3.5 text-gray-400" />
+                          Edit Post
+                        </button>
+                        <button
+                          onClick={handleDeletePost}
+                          className="w-full px-3 py-2 text-left flex items-center gap-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                          Delete Post
+                        </button>
+                        <div className="my-1 border-t border-gray-100 dark:border-gray-800" />
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleHidePost}
+                        className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      >
+                        <EyeOff className="w-3.5 h-3.5 text-gray-400" />
+                        Not Interested
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setMenuOpen(false);
                         handleBookmark();
                       }}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                     >
                       <Bookmark className="w-3.5 h-3.5 text-gray-400" />
                       {bookmarked ? "Remove from Saved" : "Save Post"}
                     </button>
                     <button
                       onClick={handleCopyLink}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                     >
                       <Copy className="w-3.5 h-3.5 text-gray-400" />
                       Copy Link
                     </button>
-                    <button
-                      onClick={handleReport}
-                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                    >
-                      <Flag className="w-3.5 h-3.5 text-gray-400" />
-                      Report Post
-                    </button>
+                    {!isAuthor && (
+                      <button
+                        onClick={handleReport}
+                        className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                      >
+                        <Flag className="w-3.5 h-3.5 text-gray-400" />
+                        Report Post
+                      </button>
+                    )}
                   </div>
                 </>
               )}
@@ -250,10 +315,40 @@ export default function PostCard({ post }) {
             @{post.author?.username}
           </p>
 
-          {post.content && (
-            <p className="mt-2 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
-              {post.content}
-            </p>
+          {isEditing ? (
+            <div className="mt-2 space-y-2">
+              <textarea
+                value={editContent}
+                onChange={(e) => setEditContent(e.target.value)}
+                rows={3}
+                className="w-full p-2.5 text-sm bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white resize-y"
+                placeholder="What's on your mind?"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEdit}
+                  disabled={updatePostMutation.isPending}
+                  className="px-3.5 py-1.5 text-xs font-medium bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {updatePostMutation.isPending ? "Saving..." : "Save changes"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            post.content && (
+              <p className="mt-2 text-sm text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+                {post.content}
+              </p>
+            )
           )}
 
           {post.image && (
