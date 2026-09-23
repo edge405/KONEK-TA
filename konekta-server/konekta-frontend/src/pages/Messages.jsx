@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useConversations, useMessages, useSendMessage, useMarkMessagesRead } from "../hooks/useMessages";
+import { useChatSocket } from "../hooks/useChatSocket";
 import { useAuth } from "../context/AuthContext";
 import Avatar from "../components/ui/Avatar";
 import Spinner from "../components/ui/Spinner";
@@ -15,6 +16,7 @@ export default function Messages() {
   const { data: messagesData, isLoading: msgLoading } = useMessages(selectedId);
   const sendMessage = useSendMessage();
   const markRead = useMarkMessagesRead();
+  const { isSocketConnected, sendSocketMessage, markSocketRead } = useChatSocket(selectedId);
   const [text, setText] = useState("");
   const messagesEndRef = useRef(null);
 
@@ -34,8 +36,9 @@ export default function Messages() {
   useEffect(() => {
     if (selectedId) {
       markRead.mutate(selectedId);
+      markSocketRead();
     }
-  }, [selectedId]);
+  }, [selectedId, markSocketRead]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,20 +47,26 @@ export default function Messages() {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!text.trim() || !selectedId) return;
-    try {
-      await sendMessage.mutateAsync({
-        conversationId: selectedId,
-        data: { content: text.trim() },
-      });
-      setText("");
-    } catch {
-      toast.error("Failed to send message");
+    const messageContent = text.trim();
+    setText("");
+
+    // Try sending directly via WebSocket for instant delivery
+    const sentViaSocket = sendSocketMessage(messageContent);
+    if (!sentViaSocket) {
+      try {
+        await sendMessage.mutateAsync({
+          conversationId: selectedId,
+          data: { content: messageContent },
+        });
+      } catch {
+        toast.error("Failed to send message");
+      }
     }
   };
 
   const getOtherName = (conv) => {
     const other = conv.other_user || conv.participants?.find((p) => p.id !== user?.id);
-    return other ? `${other.first_name} ${other.last_name}` : "Unknown";
+    return other ? `${other.first_name || ''} ${other.last_name || ''}`.trim() || other.username || "User" : "User";
   };
 
   const getOtherAvatar = (conv) => {
@@ -152,9 +161,16 @@ export default function Messages() {
                   name={getOtherName(selectedConv)}
                   size="sm"
                 />
-                <span className="font-medium text-gray-900 dark:text-white">
-                  {getOtherName(selectedConv)}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-gray-900 dark:text-white">
+                    {getOtherName(selectedConv)}
+                  </span>
+                  {isSocketConnected && (
+                    <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-400">
+                      Live
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -167,7 +183,10 @@ export default function Messages() {
                 ) : (
                   messages.map((msg) => {
                     const isMine =
-                      msg.sender?.id === user?.id || msg.is_sender;
+                      msg.sender?.id === user?.id ||
+                      msg.is_sender ||
+                      msg.sender === user?.username ||
+                      msg.sender === `${user?.first_name} ${user?.last_name}`;
                     return (
                       <div
                         key={msg.id}

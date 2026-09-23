@@ -12,7 +12,7 @@ export function useConversations() {
   return useQuery({
     queryKey: ["conversations"],
     queryFn: getConversations,
-    refetchInterval: 10000,
+    refetchInterval: 60000,
   });
 }
 
@@ -21,7 +21,7 @@ export function useMessages(conversationId) {
     queryKey: ["messages", conversationId],
     queryFn: () => getMessages(conversationId),
     enabled: !!conversationId,
-    refetchInterval: 5000,
+    refetchInterval: 60000,
   });
 }
 

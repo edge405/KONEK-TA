@@ -18,6 +18,9 @@ import Search from './pages/Search';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 
+import { WebSocketProvider } from './context/WebSocketContext';
+import { useNotifications } from './hooks/useNotifications';
+
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
@@ -50,37 +53,45 @@ const PublicRoute = ({ children }) => {
   return !isAuthenticated ? children : <Navigate to="/" replace />;
 };
 
+const AuthenticatedLayout = () => {
+  const { data } = useNotifications();
+  const notifications = Array.isArray(data) ? data : data?.results ?? [];
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+  return <Layout unreadCount={unreadCount} />;
+};
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AuthProvider>
-          <BrowserRouter>
-            <Routes>
-              <Route
-                path="/login"
-                element={
-                  <PublicRoute>
-                    <Login />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <PublicRoute>
-                    <Register />
-                  </PublicRoute>
-                }
-              />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <Layout />
-                  </ProtectedRoute>
-                }
-              >
+          <WebSocketProvider>
+            <BrowserRouter>
+              <Routes>
+                <Route
+                  path="/login"
+                  element={
+                    <PublicRoute>
+                      <Login />
+                    </PublicRoute>
+                  }
+                />
+                <Route
+                  path="/register"
+                  element={
+                    <PublicRoute>
+                      <Register />
+                    </PublicRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={
+                    <ProtectedRoute>
+                      <AuthenticatedLayout />
+                    </ProtectedRoute>
+                  }
+                >
                 <Route index element={<Home />} />
                 <Route path="groups" element={<Groups />} />
                 <Route path="groups/:id" element={<GroupDetail />} />
@@ -106,7 +117,8 @@ function App() {
               }}
             />
           </BrowserRouter>
-        </AuthProvider>
+        </WebSocketProvider>
+      </AuthProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
