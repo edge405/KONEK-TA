@@ -17,14 +17,10 @@ export default function UserProfile() {
   const { id } = useParams();
   const { user: currentUser } = useAuth();
   const { data: user, isLoading } = useUser(id);
-  const { posts, isLoading: postsLoading } = usePosts();
+  const { posts: userPosts, isLoading: postsLoading } = usePosts({ author: id });
   const followMutation = useFollowUser();
   const blockMutation = useBlockUser();
   const [activeTab, setActiveTab] = useState("posts");
-
-  const userPosts = posts.filter(
-    (p) => p.author?.id === Number(id) || p.author?.id === id
-  );
 
   const isOwnProfile = currentUser?.id === Number(id) || currentUser?.id === id;
   const isFollowing = user?.is_following;
@@ -62,7 +58,17 @@ export default function UserProfile() {
       </Link>
 
       <Card padding={false} className="overflow-hidden">
-        <div className="h-36 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+        <div className="relative h-44 sm:h-52 w-full overflow-hidden bg-gray-100 dark:bg-gray-800">
+          {user.banner_image ? (
+            <img
+              src={user.banner_image}
+              alt="Profile Banner"
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500" />
+          )}
+        </div>
         <div className="px-6 pb-6">
           <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between -mt-14">
             <div className="flex items-end gap-4">

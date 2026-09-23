@@ -7,7 +7,7 @@ import Card from "../ui/Card";
 import { Image, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 
-export default function CreatePost() {
+export default function CreatePost({ groupId }) {
   const { user } = useAuth();
   const createPost = useCreatePost();
   const [content, setContent] = useState("");
@@ -49,6 +49,7 @@ export default function CreatePost() {
       await createPost.mutateAsync({
         content: content.trim(),
         image: image || undefined,
+        group: groupId || undefined,
       });
       toast.success("Post created!");
       resetForm();

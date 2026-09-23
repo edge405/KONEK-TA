@@ -115,7 +115,7 @@ export default function GroupDetail() {
         </Card>
       )}
 
-      {group.is_member && <CreatePost />}
+      {group.is_member && <CreatePost groupId={id} />}
 
       <div className="space-y-4">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

@@ -12,9 +12,11 @@ import {
   sharePost,
   getComments,
   addComment,
+  hidePost,
+  unhidePost,
 } from "../services/posts";
 
-export function usePosts() {
+export function usePosts(filters = {}) {
   const {
     data,
     fetchNextPage,
@@ -22,8 +24,8 @@ export function usePosts() {
     isLoading,
     isFetchingNextPage,
   } = useInfiniteQuery({
-    queryKey: ["posts"],
-    queryFn: ({ pageParam = 1 }) => getPosts(pageParam),
+    queryKey: ["posts", filters],
+    queryFn: ({ pageParam = 1 }) => getPosts(pageParam, filters),
     getNextPageParam: (lastPage) => {
       if (lastPage.next) {
         const url = new URL(lastPage.next, window.location.origin);
@@ -43,8 +45,11 @@ export function useCreatePost() {
 
   return useMutation({
     mutationFn: (data) => createPost(data),
-    onSuccess: () => {
+    onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      if (variables?.group) {
+        queryClient.invalidateQueries({ queryKey: ["groupPosts", variables.group] });
+      }
       toast.success("Post created successfully!");
     },
     onError: (error) => {
@@ -139,3 +144,32 @@ export function useAddComment(postId) {
     },
   });
 }
+
+export function useHidePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (postId) => hidePost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to hide post");
+    },
+  });
+}
+
+export function useUnhidePost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (postId) => unhidePost(postId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Failed to unhide post");
+    },
+  });
+}
+

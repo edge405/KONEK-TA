@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, exceptions
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
@@ -40,12 +40,12 @@ class GroupDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         if serializer.instance.admin != self.request.user:
-            raise permissions.PermissionDenied("Only group admin can update the group")
+            raise exceptions.PermissionDenied("Only group admin can update the group")
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.admin != self.request.user:
-            raise permissions.PermissionDenied("Only group admin can delete the group")
+            raise exceptions.PermissionDenied("Only group admin can delete the group")
         instance.delete()
 
 
@@ -141,3 +141,41 @@ def accept_invitation(request, invitation_id):
         return Response({'message': 'Invitation accepted'})
     except GroupInvitation.DoesNotExist:
         return Response({'error': 'Invitation not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
+class GroupPostsView(generics.ListCreateAPIView):
+    """List and create posts for a specific group"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        from apps.posts.serializers import PostSerializer, PostCreateSerializer
+        if self.request.method == 'POST':
+            return PostCreateSerializer
+        return PostSerializer
+
+    def get_queryset(self):
+        group_id = self.kwargs.get('group_id')
+        from django.shortcuts import get_object_or_404
+        from apps.posts.models import Post
+        group = get_object_or_404(Group, id=group_id)
+
+        if group.is_private:
+            is_member = GroupMembership.objects.filter(group=group, user=self.request.user).exists()
+            if not is_member and group.admin != self.request.user:
+                raise exceptions.PermissionDenied("You are not a member of this private group")
+
+        return Post.objects.filter(group=group).select_related('author', 'group').prefetch_related('likes', 'shares')
+
+    def perform_create(self, serializer):
+        group_id = self.kwargs.get('group_id')
+        from django.shortcuts import get_object_or_404
+        group = get_object_or_404(Group, id=group_id)
+
+        is_member = GroupMembership.objects.filter(group=group, user=self.request.user).exists()
+        if not is_member and group.admin != self.request.user:
+            raise exceptions.PermissionDenied("You must be a member to post in this group")
+
+        serializer.save(author=self.request.user, group=group)
+        group.posts_count += 1
+        group.save(update_fields=['posts_count'])
+

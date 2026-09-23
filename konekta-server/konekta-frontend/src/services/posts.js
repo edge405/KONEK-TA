@@ -1,7 +1,10 @@
 import api from "../lib/api";
 
-export const getPosts = async (page = 1) => {
-  const response = await api.get(`/posts/?page=${page}`);
+export const getPosts = async (page = 1, filters = {}) => {
+  const params = new URLSearchParams({ page });
+  if (filters?.author) params.append('author', filters.author);
+  if (filters?.group) params.append('group', filters.group);
+  const response = await api.get(`/posts/?${params.toString()}`);
   return response.data;
 };
 
@@ -53,3 +56,14 @@ export const addComment = async (postId, content) => {
   const response = await api.post(`/posts/${postId}/comments/`, { content });
   return response.data;
 };
+
+export const hidePost = async (id, reason = "not_interested") => {
+  const response = await api.post(`/posts/${id}/hide/`, { reason });
+  return response.data;
+};
+
+export const unhidePost = async (id) => {
+  const response = await api.delete(`/posts/${id}/hide/`);
+  return response.data;
+};
+

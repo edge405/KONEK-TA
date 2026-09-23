@@ -1,8 +1,10 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, exceptions
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
-from .models import Post, Like, Comment, Share
+from apps.accounts.models import Block
+from .models import Post, Like, Comment, Share, HiddenPost
 from .serializers import PostSerializer, PostCreateSerializer, LikeSerializer, CommentSerializer, ShareSerializer
 
 
@@ -18,12 +20,41 @@ class PostListView(generics.ListCreateAPIView):
     def get_queryset(self):
         user = self.request.user
         following_users = user.following_set.values_list('following_id', flat=True)
-        return Post.objects.filter(
+
+        # Exclude blocked users (both ways)
+        blocked_pairs = Block.objects.filter(
+            Q(blocker=user) | Q(blocked=user)
+        ).values_list('blocker_id', 'blocked_id')
+        blocked_ids = set()
+        for blocker_id, blocked_id in blocked_pairs:
+            blocked_ids.add(blocker_id)
+            blocked_ids.add(blocked_id)
+        blocked_ids.discard(user.id)
+
+        # Exclude posts hidden by current user
+        hidden_post_ids = user.hidden_posts.values_list('post_id', flat=True)
+
+        queryset = Post.objects.filter(
             Q(visibility='public') |
             Q(author=user) |
             Q(author_id__in=following_users) |
             Q(group__members=user)
+        ).exclude(
+            author_id__in=blocked_ids
+        ).exclude(
+            id__in=hidden_post_ids
         ).select_related('author', 'group').prefetch_related('likes', 'shares')
+
+        author_id = self.request.query_params.get('author')
+        if author_id:
+            queryset = queryset.filter(author_id=author_id)
+
+        group_id = self.request.query_params.get('group')
+        if group_id:
+            queryset = queryset.filter(group_id=group_id)
+
+        return queryset
+
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
@@ -51,12 +82,12 @@ class PostDetailView(generics.RetrieveUpdateDestroyAPIView):
 
     def perform_update(self, serializer):
         if serializer.instance.author != self.request.user:
-            raise permissions.PermissionDenied("You can only edit your own posts")
+            raise exceptions.PermissionDenied("You can only edit your own posts")
         serializer.save()
 
     def perform_destroy(self, instance):
         if instance.author != self.request.user:
-            raise permissions.PermissionDenied("You can only delete your own posts")
+            raise exceptions.PermissionDenied("You can only delete your own posts")
         instance.delete()
 
 
@@ -91,7 +122,7 @@ class CommentListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
-        return Comment.objects.filter(post_id=post_id, parent=None).select_related('author')
+        return Comment.objects.filter(post_id=post_id, parent=None).select_related('user')
 
     def perform_create(self, serializer):
         post_id = self.kwargs.get('post_id')
@@ -117,3 +148,30 @@ class PostShareView(generics.CreateAPIView):
             post.shares_count += 1
             post.save()
             return Response({'message': 'Post shared'})
+
+
+class PostHideView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, post_id):
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        reason = request.data.get('reason', 'not_interested')
+        hidden, created = HiddenPost.objects.get_or_create(
+            user=request.user,
+            post=post,
+            defaults={'reason': reason}
+        )
+        return Response({'message': 'Post hidden from feed', 'hidden': True}, status=status.HTTP_200_OK)
+
+    def delete(self, request, post_id):
+        try:
+            hidden = HiddenPost.objects.get(user=request.user, post_id=post_id)
+            hidden.delete()
+            return Response({'message': 'Post unhidden', 'hidden': False}, status=status.HTTP_200_OK)
+        except HiddenPost.DoesNotExist:
+            return Response({'message': 'Post was not hidden', 'hidden': False}, status=status.HTTP_200_OK)
+

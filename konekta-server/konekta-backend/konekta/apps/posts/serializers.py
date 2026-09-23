@@ -5,8 +5,14 @@ from .models import Post, Like, Comment, Share
 User = get_user_model()
 
 
+class PostAuthorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'first_name', 'last_name', 'profile_picture')
+
+
 class PostSerializer(serializers.ModelSerializer):
-    author = serializers.StringRelatedField(read_only=True)
+    author = PostAuthorSerializer(read_only=True)
     is_liked = serializers.SerializerMethodField()
     is_shared = serializers.SerializerMethodField()
 
@@ -59,7 +65,7 @@ class LikeSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    author = serializers.StringRelatedField(read_only=True)
+    author = serializers.StringRelatedField(source='user', read_only=True)
     replies = serializers.SerializerMethodField()
 
     class Meta:
