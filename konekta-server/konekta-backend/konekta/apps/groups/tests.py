@@ -186,6 +186,38 @@ class GroupInvitationAPITests(APITestCase):
         response = self.client.post(url)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_decline_invitation(self):
+        url = reverse('decline-invitation', kwargs={'invitation_id': self.invitation.id})
+        response = self.client.post(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.invitation.refresh_from_db()
+        self.assertEqual(self.invitation.status, 'declined')
+        self.assertFalse(GroupMembership.objects.filter(user=self.invitee, group=self.group).exists())
+
+    def test_create_invitation_api(self):
+        other_user = User.objects.create_user(username='other_invitee', password='Password123!')
+        inviter_token, _ = Token.objects.get_or_create(user=self.inviter)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {inviter_token.key}')
+        url = reverse('group-invitations')
+        payload = {
+            'group': self.group.id,
+            'invitee': other_user.id,
+            'message': 'Please join our exclusive club!'
+        }
+        response = self.client.post(url, payload)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertTrue(GroupInvitation.objects.filter(group=self.group, invitee=other_user, status='pending').exists())
+
+    def test_list_invitations_includes_details(self):
+        url = reverse('group-invitations')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        results = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        self.assertIn('group_details', results[0])
+        self.assertEqual(results[0]['group_details']['name'], self.group.name)
+        self.assertIn('inviter_details', results[0])
+        self.assertEqual(results[0]['inviter_details']['username'], self.inviter.username)
+
 
 class GroupPostsAPITests(APITestCase):
     def setUp(self):

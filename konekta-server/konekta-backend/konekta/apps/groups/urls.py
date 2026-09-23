@@ -9,5 +9,6 @@ urlpatterns = [
     path('<int:group_id>/members/', views.GroupMembersView.as_view(), name='group-members'),
     path('invitations/', views.GroupInvitationView.as_view(), name='group-invitations'),
     path('invitations/<int:invitation_id>/accept/', views.accept_invitation, name='accept-invitation'),
+    path('invitations/<int:invitation_id>/decline/', views.decline_invitation, name='decline-invitation'),
     path('<int:group_id>/posts/', views.GroupPostsView.as_view(), name='group-posts'),
 ]

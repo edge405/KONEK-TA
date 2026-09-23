@@ -69,15 +69,51 @@ class GroupMembershipSerializer(serializers.ModelSerializer):
         read_only_fields = ('id', 'user', 'user_details', 'group', 'joined_at')
 
 
+class GroupInvitationGroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = ('id', 'name', 'description', 'cover_image', 'members_count', 'is_private')
+
+
 class GroupInvitationSerializer(serializers.ModelSerializer):
+    group = serializers.PrimaryKeyRelatedField(queryset=Group.objects.all())
+    group_details = GroupInvitationGroupSerializer(source='group', read_only=True)
     inviter = serializers.StringRelatedField(read_only=True)
-    group = serializers.StringRelatedField(read_only=True)
+    inviter_details = GroupMembershipUserSerializer(source='inviter', read_only=True)
+    invitee = serializers.PrimaryKeyRelatedField(queryset=User.objects.all())
+    invitee_details = GroupMembershipUserSerializer(source='invitee', read_only=True)
 
     class Meta:
         model = GroupInvitation
-        fields = ('id', 'group', 'inviter', 'invitee', 'status', 'message', 
-                 'created_at', 'updated_at')
-        read_only_fields = ('id', 'inviter', 'created_at', 'updated_at')
+        fields = (
+            'id', 'group', 'group_details', 'inviter', 'inviter_details',
+            'invitee', 'invitee_details', 'status', 'message',
+            'created_at', 'updated_at'
+        )
+        read_only_fields = ('id', 'inviter', 'status', 'created_at', 'updated_at')
+
+    def validate(self, attrs):
+        request = self.context.get('request')
+        user = request.user if request else None
+        group = attrs.get('group')
+        invitee = attrs.get('invitee')
+
+        if user and group:
+            if not GroupMembership.objects.filter(group=group, user=user).exists():
+                raise serializers.ValidationError({"group": "You must be a member of the group to invite others."})
+
+        if group and invitee:
+            if GroupMembership.objects.filter(group=group, user=invitee).exists():
+                raise serializers.ValidationError({"invitee": "This user is already a member of the group."})
+
+            existing_invite = GroupInvitation.objects.filter(group=group, invitee=invitee).first()
+            if existing_invite:
+                if existing_invite.status == 'pending':
+                    raise serializers.ValidationError({"invitee": "An invitation for this user is already pending."})
+                elif existing_invite.status in ('declined', 'accepted'):
+                    existing_invite.delete()
+
+        return attrs
 
     def create(self, validated_data):
         validated_data['inviter'] = self.context['request'].user

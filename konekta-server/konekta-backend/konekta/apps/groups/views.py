@@ -143,6 +143,22 @@ def accept_invitation(request, invitation_id):
         return Response({'error': 'Invitation not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+@api_view(['POST'])
+@permission_classes([permissions.IsAuthenticated])
+def decline_invitation(request, invitation_id):
+    """Decline a group invitation"""
+    try:
+        invitation = GroupInvitation.objects.get(id=invitation_id, invitee=request.user)
+        if invitation.status != 'pending':
+            return Response({'error': 'Invitation already processed'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        invitation.status = 'declined'
+        invitation.save()
+        return Response({'message': 'Invitation declined'})
+    except GroupInvitation.DoesNotExist:
+        return Response({'error': 'Invitation not found'}, status=status.HTTP_404_NOT_FOUND)
+
+
 class GroupPostsView(generics.ListCreateAPIView):
     """List and create posts for a specific group"""
     permission_classes = [permissions.IsAuthenticated]
