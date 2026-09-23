@@ -2,7 +2,7 @@ from rest_framework import generics, permissions, status, exceptions
 from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from django.db.models import Q
+from django.db.models import Q, F
 from apps.accounts.models import Block
 from .models import Post, Like, Comment, Share, HiddenPost, Bookmark
 from .serializers import PostSerializer, PostCreateSerializer, LikeSerializer, CommentSerializer, ShareSerializer, BookmarkSerializer
@@ -122,11 +122,27 @@ class CommentListView(generics.ListCreateAPIView):
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
-        return Comment.objects.filter(post_id=post_id, parent=None).select_related('user')
+        return Comment.objects.filter(post_id=post_id, parent=None).select_related('user').order_by('created_at')
 
     def perform_create(self, serializer):
         post_id = self.kwargs.get('post_id')
         serializer.save(user=self.request.user, post_id=post_id)
+        Post.objects.filter(id=post_id).update(comments_count=F('comments_count') + 1)
+
+
+class CommentDetailView(generics.DestroyAPIView):
+    """Delete a comment (by comment author or post author)"""
+    queryset = Comment.objects.all()
+    serializer_class = CommentSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_destroy(self, instance):
+        user = self.request.user
+        if instance.user != user and instance.post.author != user:
+            raise exceptions.PermissionDenied("You do not have permission to delete this comment")
+        post_id = instance.post_id
+        instance.delete()
+        Post.objects.filter(id=post_id, comments_count__gt=0).update(comments_count=F('comments_count') - 1)
 
 
 class PostShareView(generics.CreateAPIView):

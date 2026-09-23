@@ -73,13 +73,14 @@ class LikeSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = serializers.StringRelatedField(source='user', read_only=True)
+    author_details = PostAuthorSerializer(source='user', read_only=True)
     replies = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ('id', 'author', 'content', 'parent', 'likes_count', 
+        fields = ('id', 'author', 'author_details', 'content', 'parent', 'likes_count', 
                  'created_at', 'updated_at', 'replies')
-        read_only_fields = ('id', 'author', 'likes_count', 'created_at', 'updated_at')
+        read_only_fields = ('id', 'author', 'author_details', 'likes_count', 'created_at', 'updated_at')
 
     def get_replies(self, obj):
         if obj.replies.exists():

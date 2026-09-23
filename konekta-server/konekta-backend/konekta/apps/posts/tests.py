@@ -256,3 +256,64 @@ class PostBookmarkAPITests(APITestCase):
         res = self.client.post(url)
         self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
 
+
+class CommentManagementAPITests(APITestCase):
+    def setUp(self):
+        self.post_author = User.objects.create_user(username='author', password='Password123!')
+        self.commenter = User.objects.create_user(username='commenter', password='Password123!')
+        self.random_user = User.objects.create_user(username='random', password='Password123!')
+
+        self.post = Post.objects.create(author=self.post_author, content="Discussion post", visibility='public')
+
+        self.commenter_token, _ = Token.objects.get_or_create(user=self.commenter)
+        self.post_author_token, _ = Token.objects.get_or_create(user=self.post_author)
+        self.random_token, _ = Token.objects.get_or_create(user=self.random_user)
+
+    def test_add_comment_increments_comments_count(self):
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.commenter_token.key}')
+        url = reverse('comment-list', kwargs={'post_id': self.post.id})
+        res = self.client.post(url, {'content': 'Nice post!'})
+        self.assertEqual(res.status_code, status.HTTP_201_CREATED)
+
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.comments_count, 1)
+
+    def test_author_can_delete_own_comment_and_decrements_count(self):
+        # Create comment
+        comment = Comment.objects.create(user=self.commenter, post=self.post, content="My comment")
+        self.post.comments_count = 1
+        self.post.save()
+
+        # Delete comment as commenter
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.commenter_token.key}')
+        delete_url = reverse('comment-detail', kwargs={'pk': comment.id})
+        res = self.client.delete(delete_url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.assertFalse(Comment.objects.filter(id=comment.id).exists())
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.comments_count, 0)
+
+    def test_post_author_can_delete_any_comment_on_their_post(self):
+        comment = Comment.objects.create(user=self.commenter, post=self.post, content="Spam comment")
+        self.post.comments_count = 1
+        self.post.save()
+
+        # Delete comment as post author
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.post_author_token.key}')
+        delete_url = reverse('comment-detail', kwargs={'pk': comment.id})
+        res = self.client.delete(delete_url)
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+
+        self.assertFalse(Comment.objects.filter(id=comment.id).exists())
+
+    def test_unauthorized_user_cannot_delete_other_comment(self):
+        comment = Comment.objects.create(user=self.commenter, post=self.post, content="Legit comment")
+
+        # Try to delete as random user
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.random_token.key}')
+        delete_url = reverse('comment-detail', kwargs={'pk': comment.id})
+        res = self.client.delete(delete_url)
+        self.assertEqual(res.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Comment.objects.filter(id=comment.id).exists())
+
