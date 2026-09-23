@@ -47,17 +47,17 @@ export function useFollowStatus(userId) {
   });
 }
 
-export function useFollowers() {
+export function useFollowers(userId) {
   return useQuery({
-    queryKey: ["followers"],
-    queryFn: () => getFollowers(),
+    queryKey: ["followers", userId],
+    queryFn: () => getFollowers(userId),
   });
 }
 
-export function useFollowing() {
+export function useFollowing(userId) {
   return useQuery({
-    queryKey: ["following"],
-    queryFn: () => getFollowing(),
+    queryKey: ["following", userId],
+    queryFn: () => getFollowing(userId),
   });
 }
 

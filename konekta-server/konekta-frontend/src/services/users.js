@@ -34,13 +34,15 @@ export const getFollowStatus = async (userId) => {
   return response.data;
 };
 
-export const getFollowers = async () => {
-  const response = await api.get("/auth/followers/");
+export const getFollowers = async (userId) => {
+  const url = userId ? `/auth/followers/?user_id=${userId}` : "/auth/followers/";
+  const response = await api.get(url);
   return response.data;
 };
 
-export const getFollowing = async () => {
-  const response = await api.get("/auth/following/");
+export const getFollowing = async (userId) => {
+  const url = userId ? `/auth/following/?user_id=${userId}` : "/auth/following/";
+  const response = await api.get(url);
   return response.data;
 };
 

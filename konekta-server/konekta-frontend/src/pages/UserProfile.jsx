@@ -9,6 +9,7 @@ import Card from "../components/ui/Card";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import PostCard from "../components/posts/PostCard";
+import UserListModal from "../components/profile/UserListModal";
 import { MapPin, Calendar, FileText, UserX, ArrowLeft } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatCount } from "../utils/formatters";
@@ -21,6 +22,11 @@ export default function UserProfile() {
   const followMutation = useFollowUser();
   const blockMutation = useBlockUser();
   const [activeTab, setActiveTab] = useState("posts");
+  const [userListModal, setUserListModal] = useState({
+    isOpen: false,
+    type: "followers",
+    title: "Followers",
+  });
 
   const isOwnProfile = currentUser?.id === Number(id) || currentUser?.id === id;
   const isFollowing = user?.is_following;
@@ -138,22 +144,42 @@ export default function UserProfile() {
                 Posts
               </span>
             </div>
-            <div>
-              <span className="font-bold text-gray-900 dark:text-white">
+            <button
+              type="button"
+              onClick={() =>
+                setUserListModal({
+                  isOpen: true,
+                  type: "followers",
+                  title: `Followers (${formatCount(user.followers_count || 0)})`,
+                })
+              }
+              className="text-left group hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <span className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {formatCount(user.followers_count || 0)}
               </span>
               <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
                 Followers
               </span>
-            </div>
-            <div>
-              <span className="font-bold text-gray-900 dark:text-white">
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setUserListModal({
+                  isOpen: true,
+                  type: "following",
+                  title: `Following (${formatCount(user.following_count || 0)})`,
+                })
+              }
+              className="text-left group hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <span className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {formatCount(user.following_count || 0)}
               </span>
               <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
                 Following
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </Card>
@@ -215,6 +241,14 @@ export default function UserProfile() {
           </div>
         </Card>
       )}
+
+      <UserListModal
+        isOpen={userListModal.isOpen}
+        onClose={() => setUserListModal((prev) => ({ ...prev, isOpen: false }))}
+        title={userListModal.title}
+        userId={user?.id}
+        type={userListModal.type}
+      />
     </div>
   );
 }

@@ -11,6 +11,7 @@ import Textarea from "../components/ui/Textarea";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import PostCard from "../components/posts/PostCard";
+import UserListModal from "../components/profile/UserListModal";
 import { Edit, MapPin, Calendar, FileText, Camera, Upload, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
@@ -24,6 +25,11 @@ export default function Profile() {
   const [editOpen, setEditOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("posts");
   const [saving, setSaving] = useState(false);
+  const [userListModal, setUserListModal] = useState({
+    isOpen: false,
+    type: "followers",
+    title: "Followers",
+  });
 
   // Media upload state
   const [avatarFile, setAvatarFile] = useState(null);
@@ -220,22 +226,42 @@ export default function Profile() {
                 Posts
               </span>
             </div>
-            <div>
-              <span className="font-bold text-gray-900 dark:text-white">
+            <button
+              type="button"
+              onClick={() =>
+                setUserListModal({
+                  isOpen: true,
+                  type: "followers",
+                  title: `Followers (${formatCount(user.followers_count || 0)})`,
+                })
+              }
+              className="text-left group hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <span className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {formatCount(user.followers_count || 0)}
               </span>
               <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
                 Followers
               </span>
-            </div>
-            <div>
-              <span className="font-bold text-gray-900 dark:text-white">
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setUserListModal({
+                  isOpen: true,
+                  type: "following",
+                  title: `Following (${formatCount(user.following_count || 0)})`,
+                })
+              }
+              className="text-left group hover:opacity-80 transition-opacity cursor-pointer"
+            >
+              <span className="font-bold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
                 {formatCount(user.following_count || 0)}
               </span>
               <span className="text-gray-500 dark:text-gray-400 ml-1 text-sm">
                 Following
               </span>
-            </div>
+            </button>
           </div>
         </div>
       </Card>
@@ -461,6 +487,14 @@ export default function Profile() {
           </div>
         </form>
       </Modal>
+
+      <UserListModal
+        isOpen={userListModal.isOpen}
+        onClose={() => setUserListModal((prev) => ({ ...prev, isOpen: false }))}
+        title={userListModal.title}
+        userId={user?.id}
+        type={userListModal.type}
+      />
     </div>
   );
 }
