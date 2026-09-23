@@ -48,6 +48,7 @@ class UserSerializer(serializers.ModelSerializer):
     followers_count = serializers.SerializerMethodField()
     following_count = serializers.SerializerMethodField()
     posts_count = serializers.SerializerMethodField()
+    is_following = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -55,9 +56,9 @@ class UserSerializer(serializers.ModelSerializer):
             'id', 'username', 'email', 'first_name', 'last_name', 'bio',
             'profile_picture', 'banner_image', 'birth_date', 'location', 'website',
             'is_verified', 'followers_count', 'following_count', 'posts_count',
-            'date_joined',
+            'is_following', 'date_joined',
         )
-        read_only_fields = ('id', 'date_joined', 'followers_count', 'following_count', 'posts_count')
+        read_only_fields = ('id', 'date_joined', 'followers_count', 'following_count', 'posts_count', 'is_following')
 
     def get_followers_count(self, obj):
         return obj.followers_set.count()
@@ -67,6 +68,14 @@ class UserSerializer(serializers.ModelSerializer):
 
     def get_posts_count(self, obj):
         return obj.posts.count()
+
+    def get_is_following(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if request.user.id == obj.id:
+                return False
+            return Follow.objects.filter(follower=request.user, following=obj).exists()
+        return False
 
 
 class FollowSerializer(serializers.ModelSerializer):

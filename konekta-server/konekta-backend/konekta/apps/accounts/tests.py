@@ -362,6 +362,25 @@ class FollowAPITests(APITestCase):
         self.assertEqual(len(followers_data), 1)
         self.assertEqual(followers_data[0]['username'], 'user1')
 
+    def test_followers_and_following_with_user_id_param(self):
+        # user1 follows user2
+        self.client.post(reverse('follow-toggle', kwargs={'user_id': self.user2.id}))
+
+        # user1 queries user2's followers list using ?user_id=
+        res1 = self.client.get(f"{reverse('followers-list')}?user_id={self.user2.id}")
+        self.assertEqual(res1.status_code, status.HTTP_200_OK)
+        data1 = res1.data.get('results', res1.data) if isinstance(res1.data, dict) else res1.data
+        self.assertEqual(len(data1), 1)
+        self.assertEqual(data1[0]['username'], 'user1')
+
+        # user1 queries their own following list via ?user_id=
+        res2 = self.client.get(f"{reverse('following-list')}?user_id={self.user1.id}")
+        self.assertEqual(res2.status_code, status.HTTP_200_OK)
+        data2 = res2.data.get('results', res2.data) if isinstance(res2.data, dict) else res2.data
+        self.assertEqual(len(data2), 1)
+        self.assertEqual(data2[0]['username'], 'user2')
+        self.assertTrue(data2[0].get('is_following'))
+
 
 class SearchAndReportAPITests(APITestCase):
     def setUp(self):

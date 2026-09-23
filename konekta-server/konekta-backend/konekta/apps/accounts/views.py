@@ -118,7 +118,9 @@ class FollowersListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(following_set__following=self.request.user)
+        user_id = self.request.query_params.get('user_id')
+        target_user_id = user_id if user_id else self.request.user.id
+        return User.objects.filter(following_set__following_id=target_user_id).order_by('-following_set__created_at')
 
 
 class FollowingListView(generics.ListAPIView):
@@ -126,7 +128,9 @@ class FollowingListView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return User.objects.filter(followers_set__follower=self.request.user)
+        user_id = self.request.query_params.get('user_id')
+        target_user_id = user_id if user_id else self.request.user.id
+        return User.objects.filter(followers_set__follower_id=target_user_id).order_by('-followers_set__created_at')
 
 
 @api_view(['GET'])
