@@ -39,7 +39,7 @@ class MessageSerializer(serializers.ModelSerializer):
         model = Message
         fields = ('id', 'conversation', 'sender', 'content', 'image', 'file', 
                  'is_read', 'created_at')
-        read_only_fields = ('id', 'sender', 'created_at')
+        read_only_fields = ('id', 'conversation', 'sender', 'created_at')
 
     def create(self, validated_data):
         validated_data['sender'] = self.context['request'].user
