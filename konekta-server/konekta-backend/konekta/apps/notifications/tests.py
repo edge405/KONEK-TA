@@ -43,6 +43,37 @@ class NotificationSignalTests(APITestCase):
         self.assertEqual(notif.related_user, self.bob)
         self.assertEqual(notif.title, 'New Follower')
 
+    def test_group_invitation_creates_notification(self):
+        from apps.groups.models import Group, GroupInvitation
+        group = Group.objects.create(name='Tech Enthusiasts', admin=self.alice)
+        GroupInvitation.objects.create(group=group, inviter=self.alice, invitee=self.bob)
+        notif = Notification.objects.filter(user=self.bob, notification_type='group_invite').first()
+        self.assertIsNotNone(notif)
+        self.assertEqual(notif.related_user, self.alice)
+        self.assertEqual(notif.title, 'Group Invitation')
+        self.assertIn('invited you to join Tech Enthusiasts', notif.message)
+
+    def test_group_join_creates_notification(self):
+        from apps.groups.models import Group, GroupMembership
+        group = Group.objects.create(name='Designers Club', admin=self.alice)
+        GroupMembership.objects.create(user=self.bob, group=group, role='member')
+        notif = Notification.objects.filter(user=self.alice, notification_type='group_join').first()
+        self.assertIsNotNone(notif)
+        self.assertEqual(notif.related_user, self.bob)
+        self.assertEqual(notif.title, 'New Group Member')
+        self.assertIn('bob joined Designers Club', notif.message)
+
+    def test_direct_message_creates_notification(self):
+        from apps.messaging.models import Conversation, Message
+        conv = Conversation.objects.create()
+        conv.participants.add(self.alice, self.bob)
+        Message.objects.create(conversation=conv, sender=self.bob, content='Hey Alice!')
+        notif = Notification.objects.filter(user=self.alice, notification_type='message').first()
+        self.assertIsNotNone(notif)
+        self.assertEqual(notif.related_user, self.bob)
+        self.assertEqual(notif.title, 'New Message')
+        self.assertIn('Hey Alice!', notif.message)
+
 
 class NotificationEndpointTests(APITestCase):
     def setUp(self):

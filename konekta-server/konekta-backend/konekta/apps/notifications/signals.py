@@ -41,6 +41,44 @@ def create_follow_notification(sender, instance, created, **kwargs):
         )
 
 
+@receiver(post_save, sender='groups.GroupInvitation')
+def create_group_invitation_notification(sender, instance, created, **kwargs):
+    if created and instance.status == 'pending':
+        Notification.objects.create(
+            user=instance.invitee,
+            notification_type='group_invite',
+            title='Group Invitation',
+            message=f'{instance.inviter.username} invited you to join {instance.group.name}',
+            related_user=instance.inviter,
+        )
+
+
+@receiver(post_save, sender='groups.GroupMembership')
+def create_group_join_notification(sender, instance, created, **kwargs):
+    if created and instance.group.admin and instance.user != instance.group.admin:
+        Notification.objects.create(
+            user=instance.group.admin,
+            notification_type='group_join',
+            title='New Group Member',
+            message=f'{instance.user.username} joined {instance.group.name}',
+            related_user=instance.user,
+        )
+
+
+@receiver(post_save, sender='messaging.Message')
+def create_message_notification(sender, instance, created, **kwargs):
+    if created:
+        content_preview = instance.content[:100] if instance.content else 'Sent an attachment'
+        for participant in instance.conversation.participants.exclude(id=instance.sender.id):
+            Notification.objects.create(
+                user=participant,
+                notification_type='message',
+                title='New Message',
+                message=f'{instance.sender.username}: {content_preview}',
+                related_user=instance.sender,
+            )
+
+
 def broadcast_notification(notification):
     try:
         from asgiref.sync import async_to_sync
