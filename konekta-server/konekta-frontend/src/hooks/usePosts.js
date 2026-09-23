@@ -7,11 +7,13 @@ import {
 import { toast } from "react-hot-toast";
 import {
   getPosts,
+  getPost,
   createPost,
   toggleLike,
   sharePost,
   getComments,
   addComment,
+  deleteComment,
   hidePost,
   unhidePost,
   toggleBookmark,
@@ -40,6 +42,14 @@ export function usePosts(filters = {}) {
   const posts = data?.pages.flatMap((page) => page.results ?? page) ?? [];
 
   return { posts, fetchNextPage, hasNextPage, isLoading, isFetchingNextPage };
+}
+
+export function usePost(id) {
+  return useQuery({
+    queryKey: ["post", id],
+    queryFn: () => getPost(id),
+    enabled: !!id,
+  });
 }
 
 export function useCreatePost() {
@@ -143,6 +153,22 @@ export function useAddComment(postId) {
     },
     onError: (error) => {
       toast.error(error.response?.data?.detail || "Failed to add comment");
+    },
+  });
+}
+
+export function useDeleteComment(postId) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (commentId) => deleteComment(commentId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      toast.success("Comment deleted");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.detail || "Failed to delete comment");
     },
   });
 }

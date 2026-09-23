@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLikePost, useHidePost, useUnhidePost, useBookmarkPost } from "../../hooks/usePosts";
+import { useAuth } from "../../context/AuthContext";
+import {
+  useLikePost,
+  useHidePost,
+  useUnhidePost,
+  useBookmarkPost,
+  useComments,
+  useAddComment,
+  useDeleteComment,
+} from "../../hooks/usePosts";
 import Avatar from "../ui/Avatar";
 import Card from "../ui/Card";
 import {
@@ -14,11 +23,14 @@ import {
   Copy,
   Flag,
   Undo2,
+  Send,
+  Trash2,
 } from "lucide-react";
 import { timeAgo, formatCount } from "../../utils/formatters";
 import { toast } from "react-hot-toast";
 
 export default function PostCard({ post }) {
+  const { user: currentUser } = useAuth();
   const likePost = useLikePost();
   const hidePostMutation = useHidePost();
   const unhidePostMutation = useUnhidePost();
@@ -26,9 +38,22 @@ export default function PostCard({ post }) {
 
   const [liked, setLiked] = useState(post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [commentsCount, setCommentsCount] = useState(post.comments_count || 0);
   const [bookmarked, setBookmarked] = useState(post.is_bookmarked || false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
+  const [showComments, setShowComments] = useState(false);
+  const [commentInput, setCommentInput] = useState("");
+
+  const { data: commentsData, isLoading: commentsLoading } = useComments(
+    showComments ? post.id : null
+  );
+  const addCommentMutation = useAddComment(post.id);
+  const deleteCommentMutation = useDeleteComment(post.id);
+
+  const commentsList = Array.isArray(commentsData)
+    ? commentsData
+    : commentsData?.results ?? [];
 
   const handleLike = async () => {
     const prevLiked = liked;
@@ -93,6 +118,28 @@ export default function PostCard({ post }) {
       await bookmarkPost.mutateAsync(post.id);
     } catch {
       setBookmarked(prev);
+    }
+  };
+
+  const handleAddComment = async (e) => {
+    e?.preventDefault();
+    const content = commentInput.trim();
+    if (!content) return;
+    setCommentInput("");
+    setCommentsCount((prev) => prev + 1);
+    try {
+      await addCommentMutation.mutateAsync(content);
+    } catch {
+      setCommentsCount((prev) => Math.max(0, prev - 1));
+    }
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    setCommentsCount((prev) => Math.max(0, prev - 1));
+    try {
+      await deleteCommentMutation.mutateAsync(commentId);
+    } catch {
+      setCommentsCount((prev) => prev + 1);
     }
   };
 
@@ -232,13 +279,19 @@ export default function PostCard({ post }) {
               <span>{formatCount(likesCount)}</span>
             </button>
 
-            <Link
-              to={`/posts/${post.id}`}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
+            <button
+              onClick={() => setShowComments(!showComments)}
+              className={`flex items-center gap-1.5 text-sm transition-colors cursor-pointer ${
+                showComments
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-gray-500 hover:text-indigo-500 dark:text-gray-400 dark:hover:text-indigo-400"
+              }`}
+              title="View comments"
+              aria-label="Comments"
             >
               <MessageCircle className="w-4.5 h-4.5" />
-              <span>{formatCount(post.comments_count || 0)}</span>
-            </Link>
+              <span>{formatCount(commentsCount)}</span>
+            </button>
 
             <button
               onClick={handleShare}
@@ -261,6 +314,98 @@ export default function PostCard({ post }) {
               <Bookmark className={`w-4.5 h-4.5 ${bookmarked ? "fill-current" : ""}`} />
             </button>
           </div>
+
+          {/* Inline Comments Thread */}
+          {showComments && (
+            <div className="mt-4 pt-3 border-t border-gray-100 dark:border-gray-800 space-y-3">
+              {/* Comment composer */}
+              <form onSubmit={handleAddComment} className="flex items-center gap-2">
+                <Avatar
+                  src={currentUser?.profile_picture}
+                  name={currentUser?.username || "You"}
+                  size="sm"
+                />
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={commentInput}
+                    onChange={(e) => setCommentInput(e.target.value)}
+                    placeholder="Write a comment..."
+                    className="w-full pl-3 pr-10 py-1.5 text-xs sm:text-sm bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-900 dark:text-white placeholder-gray-400"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!commentInput.trim() || addCommentMutation.isPending}
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 text-indigo-600 dark:text-indigo-400 disabled:text-gray-300 dark:disabled:text-gray-600 hover:opacity-80 transition-opacity cursor-pointer disabled:cursor-not-allowed"
+                    aria-label="Send comment"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+
+              {/* Comments list */}
+              {commentsLoading ? (
+                <p className="text-xs text-center text-gray-400 py-2">Loading comments...</p>
+              ) : commentsList.length === 0 ? (
+                <p className="text-xs text-center text-gray-400 py-2">
+                  No comments yet. Be the first to share your thoughts!
+                </p>
+              ) : (
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
+                  {commentsList.map((c) => {
+                    const authorUser = c.author_details;
+                    const isAuthor = currentUser?.id === authorUser?.id;
+                    const isPostOwner = currentUser?.id === post.author?.id;
+                    const canDelete = isAuthor || isPostOwner;
+
+                    return (
+                      <div key={c.id} className="flex items-start gap-2 group">
+                        <Link to={`/users/${authorUser?.id || ""}`}>
+                          <Avatar
+                            src={authorUser?.profile_picture}
+                            name={authorUser?.username || c.author}
+                            size="sm"
+                          />
+                        </Link>
+                        <div className="flex-1 bg-gray-50 dark:bg-gray-800/60 rounded-xl px-3 py-2 text-xs">
+                          <div className="flex items-center justify-between gap-2">
+                            <Link
+                              to={`/users/${authorUser?.id || ""}`}
+                              className="font-semibold text-gray-900 dark:text-white hover:underline truncate"
+                            >
+                              {authorUser?.first_name && authorUser?.last_name
+                                ? `${authorUser.first_name} ${authorUser.last_name}`
+                                : authorUser?.username || c.author}
+                            </Link>
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
+                              <span className="text-[10px] text-gray-400">
+                                {timeAgo(c.created_at)}
+                              </span>
+                              {canDelete && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComment(c.id)}
+                                  className="text-gray-400 hover:text-red-500 transition-colors p-0.5 opacity-70 group-hover:opacity-100 cursor-pointer"
+                                  title="Delete comment"
+                                  aria-label="Delete comment"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="text-gray-800 dark:text-gray-200 mt-1 whitespace-pre-wrap break-words">
+                            {c.content}
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </Card>

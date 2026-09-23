@@ -16,6 +16,7 @@ import Profile from './pages/Profile';
 import UserProfile from './pages/UserProfile';
 import Search from './pages/Search';
 import Settings from './pages/Settings';
+import PostDetail from './pages/PostDetail';
 import NotFound from './pages/NotFound';
 
 import { WebSocketProvider } from './context/WebSocketContext';
@@ -99,6 +100,7 @@ function App() {
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="users/:id" element={<UserProfile />} />
+                <Route path="posts/:id" element={<PostDetail />} />
                 <Route path="search" element={<Search />} />
                 <Route path="settings" element={<Settings />} />
               </Route>

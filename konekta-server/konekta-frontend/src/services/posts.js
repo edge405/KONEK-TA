@@ -57,6 +57,11 @@ export const addComment = async (postId, content) => {
   return response.data;
 };
 
+export const deleteComment = async (commentId) => {
+  const response = await api.delete(`/posts/comments/${commentId}/`);
+  return response.data;
+};
+
 export const hidePost = async (id, reason = "not_interested") => {
   const response = await api.post(`/posts/${id}/hide/`, { reason });
   return response.data;
