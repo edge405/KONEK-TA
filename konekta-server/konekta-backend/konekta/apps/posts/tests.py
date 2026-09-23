@@ -105,6 +105,15 @@ class PostCRUDAPITests(APITestCase):
         self.post.refresh_from_db()
         self.assertEqual(self.post.content, 'Updated content')
 
+    def test_update_post_visibility_and_content(self):
+        payload = {'content': 'New text', 'visibility': 'private'}
+        response = self.client.patch(self.detail_url, payload)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['content'], 'New text')
+        self.assertEqual(response.data['visibility'], 'private')
+        self.post.refresh_from_db()
+        self.assertEqual(self.post.visibility, 'private')
+
     def test_delete_own_post(self):
         response = self.client.delete(self.detail_url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
