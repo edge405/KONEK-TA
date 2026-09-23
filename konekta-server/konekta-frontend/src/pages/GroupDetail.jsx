@@ -10,18 +10,20 @@ import {
 import CreatePost from "../components/posts/CreatePost";
 import PostCard from "../components/posts/PostCard";
 import GroupChatView from "../components/groups/GroupChatView";
+import InviteMemberModal from "../components/groups/InviteMemberModal";
 import Avatar from "../components/ui/Avatar";
 import Button from "../components/ui/Button";
 import Card from "../components/ui/Card";
 import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
-import { Users, ArrowLeft, FileText, MessageSquare, ShieldCheck, User } from "lucide-react";
+import { Users, ArrowLeft, FileText, MessageSquare, ShieldCheck, User, UserPlus } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { formatCount } from "../utils/formatters";
 
 export default function GroupDetail() {
   const { id } = useParams();
   const [activeTab, setActiveTab] = useState("posts");
+  const [inviteOpen, setInviteOpen] = useState(false);
   const { data: group, isLoading } = useGroup(id);
   const { data: members, isLoading: membersLoading } = useGroupMembers(id);
   const { data: postsData, isLoading: postsLoading } = useGroupPosts(id);
@@ -83,13 +85,25 @@ export default function GroupDetail() {
                 {formatCount(group.members_count || 0)} members · {formatCount(group.posts_count || 0)} posts
               </p>
             </div>
-            <Button
-              variant={group.is_member ? "outline" : "primary"}
-              onClick={handleJoinLeave}
-              loading={joinGroup.isPending || leaveGroup.isPending}
-            >
-              {group.is_member ? "Leave Group" : "Join Group"}
-            </Button>
+            <div className="flex items-center gap-2">
+              {group.is_member && (
+                <Button
+                  variant="outline"
+                  onClick={() => setInviteOpen(true)}
+                  className="flex items-center gap-1.5"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Invite
+                </Button>
+              )}
+              <Button
+                variant={group.is_member ? "outline" : "primary"}
+                onClick={handleJoinLeave}
+                loading={joinGroup.isPending || leaveGroup.isPending}
+              >
+                {group.is_member ? "Leave Group" : "Join Group"}
+              </Button>
+            </div>
           </div>
           {group.description && (
             <p className="mt-4 text-gray-700 dark:text-gray-300 leading-relaxed text-sm sm:text-base">
@@ -259,6 +273,14 @@ export default function GroupDetail() {
             </div>
           )}
         </div>
+      )}
+
+      {group.is_member && (
+        <InviteMemberModal
+          isOpen={inviteOpen}
+          onClose={() => setInviteOpen(false)}
+          group={group}
+        />
       )}
     </div>
   );

@@ -68,3 +68,8 @@ export const declineInvitation = async (id) => {
   const response = await api.post(`/groups/invitations/${id}/decline/`);
   return response.data;
 };
+
+export const createInvitation = async (data) => {
+  const response = await api.post("/groups/invitations/", data);
+  return response.data;
+};

@@ -8,6 +8,10 @@ import {
   leaveGroup,
   getGroupMembers,
   getGroupPosts,
+  getInvitations,
+  acceptInvitation,
+  declineInvitation,
+  createInvitation,
 } from "../services/groups";
 import { getGroupChat, sendGroupMessage } from "../services/messaging";
 
@@ -125,4 +129,63 @@ export function useSendGroupMessage() {
     },
   });
 }
+
+export function useInvitations() {
+  return useQuery({
+    queryKey: ["groupInvitations"],
+    queryFn: () => getInvitations(),
+  });
+}
+
+export function useAcceptInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => acceptInvitation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groupInvitations"] });
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      toast.success("Invitation accepted! You joined the group.");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || "Failed to accept invitation");
+    },
+  });
+}
+
+export function useDeclineInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id) => declineInvitation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groupInvitations"] });
+      toast.success("Invitation declined.");
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || "Failed to decline invitation");
+    },
+  });
+}
+
+export function useCreateInvitation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data) => createInvitation(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groupInvitations"] });
+      toast.success("Invitation sent successfully!");
+    },
+    onError: (error) => {
+      const err =
+        error.response?.data?.invitee?.[0] ||
+        error.response?.data?.group?.[0] ||
+        error.response?.data?.detail ||
+        "Failed to send invitation";
+      toast.error(err);
+    },
+  });
+}
+
 
