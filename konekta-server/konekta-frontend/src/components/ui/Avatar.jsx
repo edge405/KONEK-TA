@@ -1,6 +1,13 @@
+import { useState, useEffect } from "react";
 import { getInitials } from "../../utils/formatters";
 
 export default function Avatar({ src, name, size = "md", className = "" }) {
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [src]);
+
   const sizes = {
     xs: "w-6 h-6 text-[10px]",
     sm: "w-8 h-8 text-xs",
@@ -10,11 +17,12 @@ export default function Avatar({ src, name, size = "md", className = "" }) {
     "2xl": "w-20 h-20 text-xl",
   };
 
-  if (src) {
+  if (src && !hasError) {
     return (
       <img
         src={src}
         alt={name || "Avatar"}
+        onError={() => setHasError(true)}
         className={`${sizes[size]} rounded-full object-cover ring-2 ring-white dark:ring-gray-800 ${className}`}
       />
     );
@@ -28,3 +36,4 @@ export default function Avatar({ src, name, size = "md", className = "" }) {
     </div>
   );
 }
+

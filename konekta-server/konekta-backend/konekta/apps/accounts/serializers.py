@@ -53,7 +53,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = (
             'id', 'username', 'email', 'first_name', 'last_name', 'bio',
-            'profile_picture', 'birth_date', 'location', 'website',
+            'profile_picture', 'banner_image', 'birth_date', 'location', 'website',
             'is_verified', 'followers_count', 'following_count', 'posts_count',
             'date_joined',
         )
@@ -105,3 +105,48 @@ class ReportSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         validated_data['reporter'] = self.context['request'].user
         return super().create(validated_data)
+
+
+class PasswordChangeSerializer(serializers.Serializer):
+    old_password = serializers.CharField(required=True)
+    new_password = serializers.CharField(required=True, min_length=8)
+    confirm_password = serializers.CharField(required=True)
+
+    def validate_old_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Incorrect current password.")
+        return value
+
+    def validate(self, attrs):
+        if attrs['new_password'] != attrs['confirm_password']:
+            raise serializers.ValidationError({"confirm_password": "New passwords do not match."})
+        return attrs
+
+
+class NotificationSettingsSerializer(serializers.Serializer):
+    email_notifications = serializers.BooleanField(default=True)
+    push_notifications = serializers.BooleanField(default=True)
+    notify_follows = serializers.BooleanField(default=True)
+    notify_likes = serializers.BooleanField(default=True)
+    notify_comments = serializers.BooleanField(default=True)
+    notify_messages = serializers.BooleanField(default=True)
+
+
+class PrivacySettingsSerializer(serializers.Serializer):
+    profile_visibility = serializers.ChoiceField(
+        choices=['public', 'private'],
+        default='public'
+    )
+    search_visibility = serializers.BooleanField(default=True)
+
+
+class DeleteAccountSerializer(serializers.Serializer):
+    password = serializers.CharField(required=True)
+
+    def validate_password(self, value):
+        user = self.context['request'].user
+        if not user.check_password(value):
+            raise serializers.ValidationError("Incorrect password.")
+        return value
+

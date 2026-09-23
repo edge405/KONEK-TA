@@ -1,7 +1,7 @@
 import api from "../lib/api";
 
 export const getUser = async (id) => {
-  const response = await api.get(`/users/${id}/`);
+  const response = await api.get(`/auth/users/${id}/`);
   return response.data;
 };
 
@@ -13,55 +13,56 @@ export const updateProfile = async (data) => {
     }
   });
 
-  const response = await api.patch("/users/me/", formData, {
+  const response = await api.patch("/auth/profile/", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
 
 export const searchUsers = async (query) => {
-  const response = await api.get(`/users/?search=${encodeURIComponent(query)}`);
+  const response = await api.get(`/auth/users/?search=${encodeURIComponent(query)}`);
   return response.data;
 };
 
 export const toggleFollow = async (userId) => {
-  const response = await api.post(`/users/${userId}/follow/`);
+  const response = await api.post(`/auth/follow/${userId}/`);
   return response.data;
 };
 
 export const getFollowStatus = async (userId) => {
-  const response = await api.get(`/users/${userId}/follow-status/`);
+  const response = await api.get(`/auth/follow/${userId}/status/`);
   return response.data;
 };
 
 export const getFollowers = async () => {
-  const response = await api.get("/users/me/followers/");
+  const response = await api.get("/auth/followers/");
   return response.data;
 };
 
 export const getFollowing = async () => {
-  const response = await api.get("/users/me/following/");
+  const response = await api.get("/auth/following/");
   return response.data;
 };
 
 export const toggleBlock = async (userId) => {
-  const response = await api.post(`/users/${userId}/block/`);
+  const response = await api.post(`/auth/block/${userId}/`);
   return response.data;
 };
 
 export const getBlockedUsers = async () => {
-  const response = await api.get("/users/me/blocked/");
+  const response = await api.get("/auth/blocked/");
   return response.data;
 };
 
 export const reportUser = async (data) => {
-  const response = await api.post("/users/reports/", data);
+  const response = await api.post("/auth/report/", data);
   return response.data;
 };
 
 export const search = async (query, type = "all") => {
   const response = await api.get(
-    `/search/?q=${encodeURIComponent(query)}&type=${type}`
+    `/auth/search/?q=${encodeURIComponent(query)}&type=${type}`
   );
   return response.data;
 };
+

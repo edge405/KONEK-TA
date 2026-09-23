@@ -7,6 +7,7 @@ import {
   getFollowers,
   getFollowing,
   toggleBlock,
+  getBlockedUsers,
   search,
 } from "../services/users";
 
@@ -68,6 +69,7 @@ export function useBlockUser() {
     onSuccess: (_, userId) => {
       queryClient.invalidateQueries({ queryKey: ["user", userId] });
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["blockedUsers"] });
       toast.success("Block status updated!");
     },
     onError: (error) => {
@@ -78,6 +80,13 @@ export function useBlockUser() {
   });
 }
 
+export function useBlockedUsers() {
+  return useQuery({
+    queryKey: ["blockedUsers"],
+    queryFn: () => getBlockedUsers(),
+  });
+}
+
 export function useSearch(query) {
   return useQuery({
     queryKey: ["search", query],
@@ -85,3 +94,4 @@ export function useSearch(query) {
     enabled: !!query && query.length >= 2,
   });
 }
+

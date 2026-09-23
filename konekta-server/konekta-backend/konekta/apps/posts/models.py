@@ -77,3 +77,19 @@ class Share(models.Model):
 
     def __str__(self):
         return f"{self.user.username} shared {self.post.id}"
+
+
+class HiddenPost(models.Model):
+    """HiddenPost model for posts user is not interested in or dismissed"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hidden_posts')
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='hidden_by')
+    reason = models.CharField(max_length=50, blank=True, default='not_interested')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['user', 'post']
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.user.username} hid post {self.post.id}"
+

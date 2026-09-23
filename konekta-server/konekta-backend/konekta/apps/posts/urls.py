@@ -7,4 +7,6 @@ urlpatterns = [
     path('<int:post_id>/like/', views.PostLikeView.as_view(), name='post-like'),
     path('<int:post_id>/comments/', views.CommentListView.as_view(), name='comment-list'),
     path('<int:post_id>/share/', views.PostShareView.as_view(), name='post-share'),
+    path('<int:post_id>/hide/', views.PostHideView.as_view(), name='post-hide'),
 ]
+

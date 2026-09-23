@@ -6,6 +6,7 @@ class User(AbstractUser):
     """Extended User model with additional fields"""
     bio = models.TextField(max_length=500, blank=True)
     profile_picture = models.ImageField(upload_to='profiles/', blank=True, null=True)
+    banner_image = models.ImageField(upload_to='banners/', blank=True, null=True)
     birth_date = models.DateField(null=True, blank=True)
     location = models.CharField(max_length=100, blank=True)
     website = models.URLField(blank=True)

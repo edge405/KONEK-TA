@@ -1,13 +1,18 @@
 from rest_framework import status, generics, permissions
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework.views import APIView
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import login
 from django.db.models import Q
+from django.utils import timezone
 from .models import User, UserProfile, Follow, Block, Report
 from .serializers import (
     UserRegistrationSerializer, UserLoginSerializer, UserSerializer,
     UserProfileSerializer, FollowSerializer, BlockSerializer, ReportSerializer,
+    PasswordChangeSerializer, NotificationSettingsSerializer,
+    PrivacySettingsSerializer, DeleteAccountSerializer,
 )
 
 
@@ -55,9 +60,11 @@ def logout_view(request):
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get_object(self):
         return self.request.user
+
 
 
 class UserListView(generics.ListAPIView):
@@ -157,7 +164,7 @@ class BlockedUsersView(generics.ListAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Block.objects.filter(blocker=self.request.user).select_related('blocked')
+        return Block.objects.filter(blocker=self.request.user).select_related('blocked').order_by('-created_at')
 
 
 class ReportCreateView(generics.CreateAPIView):
@@ -201,3 +208,141 @@ def search_view(request):
         results['posts'] = PostSerializer(posts, many=True, context={'request': request}).data
 
     return Response(results)
+
+
+class PasswordChangeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = PasswordChangeSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        request.user.set_password(serializer.validated_data['new_password'])
+        request.user.save()
+        return Response({'message': 'Password changed successfully'}, status=status.HTTP_200_OK)
+
+
+DEFAULT_NOTIFICATION_SETTINGS = {
+    'email_notifications': True,
+    'push_notifications': True,
+    'notify_follows': True,
+    'notify_likes': True,
+    'notify_comments': True,
+    'notify_messages': True,
+}
+
+
+class NotificationSettingsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        merged = {**DEFAULT_NOTIFICATION_SETTINGS, **(profile.notification_settings or {})}
+        return Response(merged, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        serializer = NotificationSettingsSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        current = {**DEFAULT_NOTIFICATION_SETTINGS, **(profile.notification_settings or {})}
+        current.update(serializer.validated_data)
+        profile.notification_settings = current
+        profile.save()
+        return Response(current, status=status.HTTP_200_OK)
+
+
+DEFAULT_PRIVACY_SETTINGS = {
+    'profile_visibility': 'public',
+    'search_visibility': True,
+}
+
+
+class PrivacySettingsView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        merged = {**DEFAULT_PRIVACY_SETTINGS, **(profile.privacy_settings or {})}
+        return Response(merged, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        profile, _ = UserProfile.objects.get_or_create(user=request.user)
+        serializer = PrivacySettingsSerializer(data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        current = {**DEFAULT_PRIVACY_SETTINGS, **(profile.privacy_settings or {})}
+        current.update(serializer.validated_data)
+        profile.privacy_settings = current
+        profile.save()
+        return Response(current, status=status.HTTP_200_OK)
+
+
+class DataExportView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        posts_data = [
+            {
+                'id': post.id,
+                'content': post.content,
+                'created_at': post.created_at.isoformat() if post.created_at else None,
+                'likes_count': post.likes.count(),
+                'comments_count': post.comments.count(),
+            }
+            for post in user.posts.all()
+        ]
+        comments_data = [
+            {
+                'id': comment.id,
+                'post_id': comment.post_id,
+                'content': comment.content,
+                'created_at': comment.created_at.isoformat() if comment.created_at else None,
+            }
+            for comment in user.comments.all()
+        ] if hasattr(user, 'comments') else []
+        likes_data = list(user.likes.values_list('post_id', flat=True)) if hasattr(user, 'likes') else []
+        groups_data = [
+            {
+                'id': gm.group.id,
+                'name': gm.group.name,
+                'role': gm.role,
+                'joined_at': gm.joined_at.isoformat() if hasattr(gm, 'joined_at') and gm.joined_at else None,
+            }
+            for gm in user.memberships.select_related('group').all()
+        ] if hasattr(user, 'memberships') else []
+        following = list(user.following_set.values_list('following__username', flat=True))
+        followers = list(user.followers_set.values_list('follower__username', flat=True))
+
+        payload = {
+            'export_date': timezone.now().isoformat(),
+            'profile': {
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'bio': user.bio,
+                'location': user.location,
+                'website': user.website,
+                'date_joined': user.date_joined.isoformat() if user.date_joined else None,
+            },
+            'posts': posts_data,
+            'comments': comments_data,
+            'likes': likes_data,
+            'groups': groups_data,
+            'following': following,
+            'followers': followers,
+        }
+        res = Response(payload, status=status.HTTP_200_OK)
+        res['Content-Disposition'] = f'attachment; filename="konekta_data_export_{user.username}.json"'
+        return res
+
+
+class DeleteAccountView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        serializer = DeleteAccountSerializer(data=request.data, context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        request.user.delete()
+        return Response({'message': 'Account deleted successfully'}, status=status.HTTP_200_OK)
+

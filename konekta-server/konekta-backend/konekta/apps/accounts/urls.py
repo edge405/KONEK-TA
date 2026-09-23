@@ -16,4 +16,10 @@ urlpatterns = [
     path('blocked/', views.BlockedUsersView.as_view(), name='blocked-list'),
     path('report/', views.ReportCreateView.as_view(), name='report-create'),
     path('search/', views.search_view, name='search'),
+    path('password/change/', views.PasswordChangeView.as_view(), name='password-change'),
+    path('settings/notifications/', views.NotificationSettingsView.as_view(), name='settings-notifications'),
+    path('settings/privacy/', views.PrivacySettingsView.as_view(), name='settings-privacy'),
+    path('export-data/', views.DataExportView.as_view(), name='export-data'),
+    path('delete-account/', views.DeleteAccountView.as_view(), name='delete-account'),
 ]
+

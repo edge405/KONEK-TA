@@ -17,7 +17,47 @@ export const authService = {
   },
 
   updateProfile: async (data) => {
-    const response = await api.patch('/auth/profile/', data);
+    const isFormData = typeof FormData !== "undefined" && data instanceof FormData;
+    const response = await api.patch('/auth/profile/', data, {
+      headers: isFormData ? { 'Content-Type': 'multipart/form-data' } : undefined,
+    });
+    return response.data;
+  },
+
+
+  changePassword: async (data) => {
+    const response = await api.post('/auth/password/change/', data);
+    return response.data;
+  },
+
+  getNotificationSettings: async () => {
+    const response = await api.get('/auth/settings/notifications/');
+    return response.data;
+  },
+
+  updateNotificationSettings: async (data) => {
+    const response = await api.patch('/auth/settings/notifications/', data);
+    return response.data;
+  },
+
+  getPrivacySettings: async () => {
+    const response = await api.get('/auth/settings/privacy/');
+    return response.data;
+  },
+
+  updatePrivacySettings: async (data) => {
+    const response = await api.patch('/auth/settings/privacy/', data);
+    return response.data;
+  },
+
+  exportData: async () => {
+    const response = await api.get('/auth/export-data/');
+    return response.data;
+  },
+
+  deleteAccount: async (data) => {
+    const response = await api.post('/auth/delete-account/', data);
     return response.data;
   },
 };
+
