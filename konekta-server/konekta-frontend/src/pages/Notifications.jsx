@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useNotifications, useMarkAsRead, useMarkAllAsRead } from "../hooks/useNotifications";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/ui/Card";
@@ -12,6 +13,8 @@ import {
   Users,
   Share2,
   CheckCheck,
+  Mail,
+  MessageSquare,
 } from "lucide-react";
 import { timeAgo } from "../utils/formatters";
 
@@ -19,7 +22,9 @@ const iconMap = {
   like: Heart,
   comment: MessageCircle,
   follow: UserPlus,
+  group_invite: Mail,
   group_join: Users,
+  message: MessageSquare,
   share: Share2,
 };
 
@@ -27,11 +32,14 @@ const colorMap = {
   like: "text-red-500 bg-red-50 dark:bg-red-950/30",
   comment: "text-blue-500 bg-blue-50 dark:bg-blue-950/30",
   follow: "text-green-500 bg-green-50 dark:bg-green-950/30",
+  group_invite: "text-amber-500 bg-amber-50 dark:bg-amber-950/30",
   group_join: "text-purple-500 bg-purple-50 dark:bg-purple-950/30",
+  message: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
   share: "text-indigo-500 bg-indigo-50 dark:bg-indigo-950/30",
 };
 
 export default function Notifications() {
+  const navigate = useNavigate();
   const { data, isLoading } = useNotifications();
   const markAsRead = useMarkAsRead();
   const markAll = useMarkAllAsRead();
@@ -46,6 +54,24 @@ export default function Notifications() {
 
   const handleMarkOne = (id) => {
     markAsRead.mutate(id);
+  };
+
+  const handleNotificationClick = (notification) => {
+    if (!notification.is_read) {
+      handleMarkOne(notification.id);
+    }
+    const type = notification.notification_type || notification.type;
+    if (type === "group_invite") {
+      navigate("/groups?tab=invitations");
+    } else if (type === "group_join") {
+      navigate("/groups");
+    } else if (type === "message") {
+      navigate("/messages");
+    } else if (type === "follow") {
+      navigate("/profile");
+    } else if (type === "like" || type === "comment") {
+      navigate("/");
+    }
   };
 
   return (
@@ -92,9 +118,7 @@ export default function Notifications() {
                     ? "bg-indigo-50/50 dark:bg-indigo-950/10 border-indigo-200 dark:border-indigo-900"
                     : ""
                 }`}
-                onClick={() =>
-                  !notification.is_read && handleMarkOne(notification.id)
-                }
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div
                   className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}

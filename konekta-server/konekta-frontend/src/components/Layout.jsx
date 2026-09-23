@@ -58,7 +58,7 @@ export default function Layout({ unreadCount = 0 }) {
         </div>
       </div>
 
-      <MobileNav />
+      <MobileNav unreadCount={unreadCount} />
     </div>
   );
 }

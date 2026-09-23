@@ -1,13 +1,14 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, Search, Users, MessageCircle, User } from "lucide-react";
+import { Home, Search, Users, MessageCircle, Bell, User } from "lucide-react";
 
-export default function MobileNav() {
+export default function MobileNav({ unreadCount = 0 }) {
   const items = [
     { path: "/", icon: Home, label: "Home" },
     { path: "/search", icon: Search, label: "Search" },
     { path: "/groups", icon: Users, label: "Groups" },
     { path: "/messages", icon: MessageCircle, label: "Messages" },
+    { path: "/notifications", icon: Bell, label: "Alerts", badge: unreadCount },
     { path: "/profile", icon: User, label: "Profile" },
   ];
 
@@ -20,14 +21,21 @@ export default function MobileNav() {
             to={item.path}
             end={item.path === "/"}
             className={({ isActive }) =>
-              `flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-lg transition-colors ${
+              `relative flex flex-col items-center justify-center gap-0.5 flex-1 py-1.5 rounded-lg transition-colors ${
                 isActive
                   ? "text-indigo-600 dark:text-indigo-400"
                   : "text-gray-500 dark:text-gray-400"
               }`
             }
           >
-            <item.icon className="w-5 h-5" />
+            <div className="relative">
+              <item.icon className="w-5 h-5" />
+              {item.badge > 0 && (
+                <span className="absolute -top-1 -right-1.5 bg-red-500 text-white text-[9px] font-bold rounded-full min-w-4 h-4 px-1 flex items-center justify-center leading-none">
+                  {item.badge > 9 ? "9+" : item.badge}
+                </span>
+              )}
+            </div>
             <span className="text-[10px] font-medium">{item.label}</span>
           </NavLink>
         ))}
