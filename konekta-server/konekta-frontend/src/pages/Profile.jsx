@@ -1,6 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { usePosts } from "../hooks/usePosts";
+import { usePosts, useBookmarks } from "../hooks/usePosts";
 import { authService } from "../services/auth";
 import Avatar from "../components/ui/Avatar";
 import Button from "../components/ui/Button";
@@ -12,18 +13,27 @@ import Spinner from "../components/ui/Spinner";
 import EmptyState from "../components/ui/EmptyState";
 import PostCard from "../components/posts/PostCard";
 import UserListModal from "../components/profile/UserListModal";
-import { Edit, MapPin, Calendar, FileText, Camera, Upload, X } from "lucide-react";
+import { Edit, MapPin, Calendar, FileText, Bookmark, Camera, Upload, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { formatCount } from "../utils/formatters";
 
 export default function Profile() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, updateUser } = useAuth();
   const { posts: userPosts, isLoading: postsLoading } = usePosts(
     user?.id ? { author: user.id } : {}
   );
+  const { posts: bookmarkedPosts, isLoading: bookmarksLoading } = useBookmarks();
   const [editOpen, setEditOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("posts");
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "posts");
+
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["posts", "saved", "about"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
   const [saving, setSaving] = useState(false);
   const [userListModal, setUserListModal] = useState({
     isOpen: false,
@@ -267,10 +277,13 @@ export default function Profile() {
       </Card>
 
       <div className="flex border-b border-gray-200 dark:border-gray-800">
-        {["posts", "about"].map((tab) => (
+        {["posts", "saved", "about"].map((tab) => (
           <button
             key={tab}
-            onClick={() => setActiveTab(tab)}
+            onClick={() => {
+              setActiveTab(tab);
+              setSearchParams({ tab });
+            }}
             className={`px-6 py-3 text-sm font-medium border-b-2 transition-colors capitalize ${
               activeTab === tab
                 ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
@@ -294,6 +307,22 @@ export default function Profile() {
             />
           ) : (
             userPosts.map((post) => <PostCard key={post.id} post={post} />)
+          )}
+        </div>
+      )}
+
+      {activeTab === "saved" && (
+        <div className="space-y-4">
+          {bookmarksLoading ? (
+            <Spinner className="py-12" />
+          ) : bookmarkedPosts.length === 0 ? (
+            <EmptyState
+              icon={<Bookmark className="w-12 h-12" />}
+              title="No saved posts yet"
+              description="Save posts to easily find and view them later."
+            />
+          ) : (
+            bookmarkedPosts.map((post) => <PostCard key={post.id} post={post} />)
           )}
         </div>
       )}

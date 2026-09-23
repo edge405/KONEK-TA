@@ -67,3 +67,13 @@ export const unhidePost = async (id) => {
   return response.data;
 };
 
+export const toggleBookmark = async (id) => {
+  const response = await api.post(`/posts/${id}/bookmark/`);
+  return response.data;
+};
+
+export const getBookmarks = async (page = 1) => {
+  const response = await api.get(`/posts/bookmarks/?page=${page}`);
+  return response.data;
+};
+

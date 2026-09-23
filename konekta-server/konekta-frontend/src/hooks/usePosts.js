@@ -14,6 +14,8 @@ import {
   addComment,
   hidePost,
   unhidePost,
+  toggleBookmark,
+  getBookmarks,
 } from "../services/posts";
 
 export function usePosts(filters = {}) {
@@ -169,6 +171,77 @@ export function useUnhidePost() {
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Failed to unhide post");
+    },
+  });
+}
+
+export function useBookmarks() {
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isLoading,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["bookmarks"],
+    queryFn: ({ pageParam = 1 }) => getBookmarks(pageParam),
+    getNextPageParam: (lastPage) => {
+      if (lastPage?.next) {
+        const url = new URL(lastPage.next, window.location.origin);
+        return parseInt(url.searchParams.get("page"), 10);
+      }
+      return undefined;
+    },
+  });
+
+  const posts = data?.pages.flatMap((page) => page.results ?? page) ?? [];
+
+  return { posts, fetchNextPage, hasNextPage, isLoading, isFetchingNextPage };
+}
+
+export function useBookmarkPost() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (postId) => toggleBookmark(postId),
+    onMutate: async (postId) => {
+      await queryClient.cancelQueries({ queryKey: ["posts"] });
+      await queryClient.cancelQueries({ queryKey: ["bookmarks"] });
+
+      const updatePostInPages = (old) => {
+        if (!old?.pages) return old;
+        return {
+          ...old,
+          pages: old.pages.map((page) => ({
+            ...page,
+            results: (page.results ?? page).map((post) =>
+              post.id === postId
+                ? {
+                    ...post,
+                    is_bookmarked: !post.is_bookmarked,
+                  }
+                : post
+            ),
+          })),
+        };
+      };
+
+      queryClient.setQueriesData({ queryKey: ["posts"] }, updatePostInPages);
+      queryClient.setQueriesData({ queryKey: ["bookmarks"] }, updatePostInPages);
+    },
+    onSuccess: (data) => {
+      if (data?.bookmarked) {
+        toast.success("Post saved to bookmarks!");
+      } else {
+        toast.success("Post removed from bookmarks");
+      }
+    },
+    onError: (error) => {
+      toast.error(error.response?.data?.error || "Failed to update bookmark");
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["bookmarks"] });
     },
   });
 }

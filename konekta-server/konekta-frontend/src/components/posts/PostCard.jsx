@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useLikePost, useHidePost, useUnhidePost } from "../../hooks/usePosts";
+import { useLikePost, useHidePost, useUnhidePost, useBookmarkPost } from "../../hooks/usePosts";
 import Avatar from "../ui/Avatar";
 import Card from "../ui/Card";
 import {
   Heart,
   MessageCircle,
   Share2,
+  Bookmark,
   BadgeCheck,
   MoreHorizontal,
   EyeOff,
@@ -21,9 +22,11 @@ export default function PostCard({ post }) {
   const likePost = useLikePost();
   const hidePostMutation = useHidePost();
   const unhidePostMutation = useUnhidePost();
+  const bookmarkPost = useBookmarkPost();
 
   const [liked, setLiked] = useState(post.is_liked);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [bookmarked, setBookmarked] = useState(post.is_bookmarked || false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHidden, setIsHidden] = useState(false);
 
@@ -81,6 +84,16 @@ export default function PostCard({ post }) {
   const handleReport = () => {
     setMenuOpen(false);
     toast.success("Post reported for community review");
+  };
+
+  const handleBookmark = async () => {
+    const prev = bookmarked;
+    setBookmarked(!prev);
+    try {
+      await bookmarkPost.mutateAsync(post.id);
+    } catch {
+      setBookmarked(prev);
+    }
   };
 
   if (isHidden) {
@@ -157,6 +170,16 @@ export default function PostCard({ post }) {
                       Not Interested
                     </button>
                     <button
+                      onClick={() => {
+                        setMenuOpen(false);
+                        handleBookmark();
+                      }}
+                      className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      <Bookmark className="w-3.5 h-3.5 text-gray-400" />
+                      {bookmarked ? "Remove from Saved" : "Save Post"}
+                    </button>
+                    <button
                       onClick={handleCopyLink}
                       className="w-full px-3 py-2 text-left flex items-center gap-2 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
@@ -223,6 +246,19 @@ export default function PostCard({ post }) {
             >
               <Share2 className="w-4.5 h-4.5" />
               <span>{formatCount(post.shares_count || 0)}</span>
+            </button>
+
+            <button
+              onClick={handleBookmark}
+              className={`ml-auto flex items-center gap-1.5 text-sm transition-colors cursor-pointer ${
+                bookmarked
+                  ? "text-indigo-600 dark:text-indigo-400"
+                  : "text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400"
+              }`}
+              title={bookmarked ? "Remove from Saved" : "Save Post"}
+              aria-label={bookmarked ? "Remove from Saved" : "Save Post"}
+            >
+              <Bookmark className={`w-4.5 h-4.5 ${bookmarked ? "fill-current" : ""}`} />
             </button>
           </div>
         </div>
