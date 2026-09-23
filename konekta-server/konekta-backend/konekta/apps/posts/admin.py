@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Post, Like, Comment, Share
+from .models import Post, Like, Comment, Share, Bookmark
 
 
 @admin.register(Post)
@@ -26,5 +26,11 @@ class CommentAdmin(admin.ModelAdmin):
 
 @admin.register(Share)
 class ShareAdmin(admin.ModelAdmin):
+    list_display = ('user', 'post', 'created_at')
+    raw_id_fields = ('user', 'post')
+
+
+@admin.register(Bookmark)
+class BookmarkAdmin(admin.ModelAdmin):
     list_display = ('user', 'post', 'created_at')
     raw_id_fields = ('user', 'post')

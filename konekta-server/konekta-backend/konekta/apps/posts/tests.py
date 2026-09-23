@@ -213,3 +213,46 @@ class PostFilteringParamsTests(APITestCase):
         self.assertIn('posts', res.data)
         self.assertTrue(len(res.data['posts']) >= 1)
 
+
+class PostBookmarkAPITests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='bookmarker', password='Password123!')
+        self.other_user = User.objects.create_user(username='post_author', password='Password123!')
+        self.token, _ = Token.objects.get_or_create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+        self.post = Post.objects.create(author=self.other_user, content="Bookmark me!", visibility='public')
+        self.bookmark_url = reverse('post-bookmark', kwargs={'post_id': self.post.id})
+        self.bookmarks_list_url = reverse('bookmark-list')
+
+    def test_bookmark_post(self):
+        # Bookmark post
+        res = self.client.post(self.bookmark_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertTrue(res.data.get('bookmarked'))
+
+        # Check bookmark list
+        list_res = self.client.get(self.bookmarks_list_url)
+        self.assertEqual(list_res.status_code, status.HTTP_200_OK)
+        results = list_res.data.get('results', list_res.data) if isinstance(list_res.data, dict) else list_res.data
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]['id'], self.post.id)
+        self.assertTrue(results[0]['is_bookmarked'])
+
+    def test_unbookmark_post(self):
+        # Bookmark
+        self.client.post(self.bookmark_url)
+        # Unbookmark
+        res = self.client.post(self.bookmark_url)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertFalse(res.data.get('bookmarked'))
+
+        # Check bookmark list is empty
+        list_res = self.client.get(self.bookmarks_list_url)
+        results = list_res.data.get('results', list_res.data) if isinstance(list_res.data, dict) else list_res.data
+        self.assertEqual(len(results), 0)
+
+    def test_bookmark_nonexistent_post(self):
+        url = reverse('post-bookmark', kwargs={'post_id': 999999})
+        res = self.client.post(url)
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
+

@@ -4,8 +4,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from django.db.models import Q
 from apps.accounts.models import Block
-from .models import Post, Like, Comment, Share, HiddenPost
-from .serializers import PostSerializer, PostCreateSerializer, LikeSerializer, CommentSerializer, ShareSerializer
+from .models import Post, Like, Comment, Share, HiddenPost, Bookmark
+from .serializers import PostSerializer, PostCreateSerializer, LikeSerializer, CommentSerializer, ShareSerializer, BookmarkSerializer
 
 
 class PostListView(generics.ListCreateAPIView):
@@ -174,4 +174,32 @@ class PostHideView(APIView):
             return Response({'message': 'Post unhidden', 'hidden': False}, status=status.HTTP_200_OK)
         except HiddenPost.DoesNotExist:
             return Response({'message': 'Post was not hidden', 'hidden': False}, status=status.HTTP_200_OK)
+
+
+class BookmarkListView(generics.ListAPIView):
+    """List bookmarked posts of the authenticated user"""
+    serializer_class = PostSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Post.objects.filter(
+            bookmarked_by__user=self.request.user
+        ).order_by('-bookmarked_by__created_at').select_related('author', 'group').prefetch_related('likes', 'shares', 'bookmarked_by')
+
+
+class PostBookmarkView(APIView):
+    """Toggle bookmarking a post"""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, post_id):
+        try:
+            post = Post.objects.get(id=post_id)
+        except Post.DoesNotExist:
+            return Response({'error': 'Post not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        bookmark, created = Bookmark.objects.get_or_create(user=request.user, post=post)
+        if not created:
+            bookmark.delete()
+            return Response({'message': 'Post removed from bookmarks', 'bookmarked': False}, status=status.HTTP_200_OK)
+        return Response({'message': 'Post bookmarked', 'bookmarked': True}, status=status.HTTP_200_OK)
 

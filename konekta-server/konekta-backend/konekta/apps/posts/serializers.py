@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from .models import Post, Like, Comment, Share
+from .models import Post, Like, Comment, Share, Bookmark
 
 User = get_user_model()
 
@@ -15,13 +15,14 @@ class PostSerializer(serializers.ModelSerializer):
     author = PostAuthorSerializer(read_only=True)
     is_liked = serializers.SerializerMethodField()
     is_shared = serializers.SerializerMethodField()
+    is_bookmarked = serializers.SerializerMethodField()
 
     class Meta:
         model = Post
         fields = ('id', 'author', 'content', 'image', 'video', 'link_url', 
                  'link_title', 'link_description', 'visibility', 'group', 
                  'likes_count', 'comments_count', 'shares_count', 'created_at', 
-                 'updated_at', 'is_liked', 'is_shared')
+                 'updated_at', 'is_liked', 'is_shared', 'is_bookmarked')
         read_only_fields = ('id', 'author', 'likes_count', 'comments_count', 
                            'shares_count', 'created_at', 'updated_at')
 
@@ -35,6 +36,12 @@ class PostSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
             return obj.shares.filter(user=request.user).exists()
+        return False
+
+    def get_is_bookmarked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.bookmarked_by.filter(user=request.user).exists()
         return False
 
 
@@ -93,3 +100,12 @@ class ShareSerializer(serializers.ModelSerializer):
             share.post.shares_count += 1
             share.post.save()
         return share
+
+
+class BookmarkSerializer(serializers.ModelSerializer):
+    post = PostSerializer(read_only=True)
+
+    class Meta:
+        model = Bookmark
+        fields = ('id', 'user', 'post', 'created_at')
+        read_only_fields = ('id', 'user', 'created_at')
